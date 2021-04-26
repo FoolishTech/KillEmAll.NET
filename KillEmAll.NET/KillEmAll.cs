@@ -98,6 +98,17 @@ namespace KillEmAll.NET
         void killProcess(string process, int PID)
         {
             bool success;
+            //Console.WriteLine($"Terminate process:  \"{process}\"  [Y/n/g] (Yes/No/Google)?");
+            //ConsoleKeyInfo foo = Console.ReadKey();
+            //if (foo.KeyChar.ToString().ToLower().Equals("y"))
+            //{
+            //    //Console.WriteLine($"Terminating {process}...");
+            //    success = killProcessByPID(PID);
+            //    Console.WriteLine($"Terminate = {success} for {process}");
+            //}
+            //if (foo.KeyChar.ToString().ToLower().Equals("g"))
+            //    Console.WriteLine($"Searching Web {process}...");
+
             success = killProcessByPID(PID);
             Console.WriteLine($"Terminated={success}  [{process}]");
         }
