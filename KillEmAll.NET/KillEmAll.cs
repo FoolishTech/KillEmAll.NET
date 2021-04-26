@@ -24,12 +24,13 @@ namespace KillEmAll.NET
 
             myPID = Process.GetCurrentProcess().Id;
             myParentPID = ParentProcessUtilities.GetParentProcess(myPID).Id;
-
+            
+            // these are Windows processes that should not be terminated, full paths
             string[] temp = { winDir + "explorer.exe", sys32 + "services.exe", sys32 + "winlogon.exe", sys32 + "lsass.exe", sys32 + "logonui.exe", sys32 + "spoolsv.exe",
                 sys32 + "alg.exe", sys32 + "lsm.exe", sys32 + "audiodg.exe", sys32 + "dllhost.exe", sys32 + "msdtc.exe", sys32 + "wscntfy.exe", sys32 + "wudfhost.exe",
                 sys32 + "wininit.exe", sys32 + "mdm.exe", sys32 + "rdpclip.exe", sys32 + "taskmgr.exe", sys32 + "dwm.exe", sys32 + "taskhost.exe", sys32 + "taskeng.exe",
                 sys32 + "sppsvc.exe", sys32 + "conhost.exe", sys32 + "wisptis.exe", sys32 + "tabtip.exe", sys32 + "inputpersonalization.exe", sys32 + "wbem\\wmiprvse.exe",
-                sys64 + "wbem\\wmiprvse.exe", sys32 + "ui0detect.exe", sys32 + "cacls.exe", sys32 + "sihost.exe", sys32 + "wlms\\wlms.exe", sys32 + "smss.exe",
+                sys64 + "wbem\\wmiprvse.exe", sys32 + "ui0detect.exe", sys32 + "sihost.exe", sys32 + "wlms\\wlms.exe", sys32 + "smss.exe",
                 sys32 + "csrss.exe", sys32 + "svchost.exe", sys64 + "svchost.exe", sys32 + "dashost.exe", sys32 + "runtimebroker.exe", sys32 + "taskhostw.exe",
                 sys32 + "sppsvc.exe", sys32 + "fontdrvhost.exe", sys32 + "systemsettingsbroker.exe", sys32 + "securityhealthservice.exe", sys32 + "sgrmbroker.exe"};
             foreach (string i in temp)
@@ -45,46 +46,54 @@ namespace KillEmAll.NET
             }
         }
 
-        public void doWork()
+        public void Start()
         {
             IntPtr HANLDE_Processes = CreateToolhelp32SnapshotRtlMoveMemory(2, 0);
 
             PROCESSENTRY32W p32Iw = new PROCESSENTRY32W();
-            int size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(PROCESSENTRY32W));
+            int size = Marshal.SizeOf(typeof(PROCESSENTRY32W));
             p32Iw.dwSize = Convert.ToUInt32(size);
             bool blFirstProcess = Process32First(HANLDE_Processes, ref p32Iw);
-            int x = Marshal.GetLastWin32Error();
-
+            //int x = Marshal.GetLastWin32Error();
             if (blFirstProcess)
             {
                 do
                 {
+                    // get the process ID, filename, and full path
                     int PID = (int)p32Iw.th32ProcessID;
                     string filename = p32Iw.szExeFile.ToLower();
                     string fullpath = getPathFromPID(PID).ToLower();
 
+                    // always skip when processID = 0 or 4 which are system critical, or is equal to my processID or my parent process
+                    // theory behind skipping the parent process is that it is conhost in a console app, explorer.exe if run by the user
+                    // in a GUI based app, or another app in a suite that is using this app as part of it's functionality.
                     if (PID != 0 && PID != 4 && PID != myPID && PID != myParentPID)
                     {
+                        // ensure we have a filename string, not sure why this would ever be empty but maybe I ran into it once, I don't recall...
                         if (!string.IsNullOrEmpty(filename.Trim()))
                         {
+                            // another quick check for system critical processes (that aren't actually files with extensions)
                             if (!processIsSystemCritical(filename))
                             {
+                                // check for child processes of this process and skip them, not that KillEmAll.NET does this but other apps I might use this class in might...
+                                // so get the parent process ID and make sure that isn't me.
                                 int ParentPID = (int)p32Iw.th32ParentProcessID;
                                 if (ParentPID != myPID)
                                 {
                                     if (fullpath.Contains("\\"))
                                     {
-                                        // check against full path whitelist
+                                        // we have a full path, so check against full path whitelist
                                         if (!_internalWindowsFiles.ContainsKey(fullpath))
                                             killProcess(fullpath, PID);
                                     }
                                     else
                                     {
-                                        // check against single file whitelist; but since I don't have one...
-                                        if (!_internalWindowsFiles.ContainsKey(winDir + filename))
-                                            if (!_internalWindowsFiles.ContainsKey(sys32 + filename))
-                                                if (!_internalWindowsFiles.ContainsKey(sys64 + filename))
-                                                    killProcess(filename, PID);
+                                        // here we didn't obtain a full path, and we're working with just the filename (this is 99.9% of the time a Windows file in a system dir)
+                                        // I didn't bother to create a second/single EXE whitelist, so prepend a system path and check the whitelist...
+                                        // I don't test for winDir by itself because we always obtain a path from Explorer.exe, and that is the only file from winDir in our whitelist.
+                                        if (!_internalWindowsFiles.ContainsKey(sys32 + filename))
+                                            if (!_internalWindowsFiles.ContainsKey(sys64 + filename))
+                                                killProcess(filename, PID);
                                     }
                                 }
                             }
@@ -98,16 +107,17 @@ namespace KillEmAll.NET
         void killProcess(string process, int PID)
         {
             bool success;
+            //
+            // TODO:  add features for optional termination and to google the process
+            //
             //Console.WriteLine($"Terminate process:  \"{process}\"  [Y/n/g] (Yes/No/Google)?");
             //ConsoleKeyInfo foo = Console.ReadKey();
             //if (foo.KeyChar.ToString().ToLower().Equals("y"))
             //{
-            //    //Console.WriteLine($"Terminating {process}...");
             //    success = killProcessByPID(PID);
-            //    Console.WriteLine($"Terminate = {success} for {process}");
+            //    Console.WriteLine($"Terminated={success}  [{process}]");
             //}
             //if (foo.KeyChar.ToString().ToLower().Equals("g"))
-            //    Console.WriteLine($"Searching Web {process}...");
 
             success = killProcessByPID(PID);
             Console.WriteLine($"Terminated={success}  [{process}]");
@@ -129,8 +139,10 @@ namespace KillEmAll.NET
         bool processIsSystemCritical(string procName)
         {
             bool bRet = false;
+            // if process has no file extension it is a special Windows process
             if (!procName.Contains("."))
             {
+                // if string starts with 'system'
                 if (procName.Substring(0, 6).ToLower().Equals("system"))
                     bRet = true;
                 else if (procName.ToLower().Equals("registry"))
@@ -146,6 +158,7 @@ namespace KillEmAll.NET
             IntPtr hProcess;
             bool bSuccess;
             var buffer = new StringBuilder(1024);
+            string sRet = "";
 
             hProcess = OpenProcess(ProcessAccessFlags.QueryLimitedInformation, false, PID);
 
@@ -153,13 +166,9 @@ namespace KillEmAll.NET
             {
                 int size = buffer.Capacity;
                 bSuccess = QueryFullProcessImageName(hProcess, 0, buffer, ref size);
-
-                return buffer.ToString();
+                sRet = buffer.ToString();
             }
-            else
-            {
-                return $"Failure!  PID={PID}";
-            }
+            return sRet;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]

@@ -16,7 +16,7 @@ namespace KillEmAll.NET
             try
             {
                 KillEmAll foo = new KillEmAll();
-                foo.doWork();
+                foo.Start();
             }
             catch (Exception ex)
             {
