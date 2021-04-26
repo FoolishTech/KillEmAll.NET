@@ -15,7 +15,6 @@ namespace KillEmAll.NET
         {
             try
             {
-                //Env.InitEnv();
                 KillEmAll foo = new KillEmAll();
                 foo.doWork();
             }
