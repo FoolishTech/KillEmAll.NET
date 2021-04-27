@@ -14,16 +14,31 @@ namespace KillEmAll.NET
         private string _sys32;
         private string _sys64;
         private int _myPID;
-        private int myParentPID;
+        private int _myParentPID = 0;
+        private bool _debugMode;
 
-        public KillEmAll()
+        public KillEmAll(bool debugMode = false)
         {
+            if (debugMode)
+                _debugMode = true;
+
             _winDir = System.IO.Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.System)).ToString().ToLower() + "\\";
             _sys32 = _winDir + "system32\\";
             _sys64 = _winDir + "syswow64\\";
 
             _myPID = Process.GetCurrentProcess().Id;
-            myParentPID = ParentProcessUtilities.GetParentProcess(_myPID).Id;
+
+            // get parent process.  added try/catch because this will FAIL when parent isn't running;
+            // like when user selects to run this process as administrator from this process at the user level,
+            // because parent process at the user level terminates self after running this process again as administrator
+            // it's ok for _myParentPID to stay at 0 as initialized.
+            try
+            {
+                _myParentPID = ParentProcessUtilities.GetParentProcess(_myPID).Id;
+            }
+            catch
+            {
+            }
             
             // these are Windows processes that should not be terminated, full paths
             string[] temp = { _winDir + "explorer.exe", _sys32 + "services.exe", _sys32 + "winlogon.exe", _sys32 + "lsass.exe", _sys32 + "logonui.exe", _sys32 + "spoolsv.exe",
@@ -66,7 +81,7 @@ namespace KillEmAll.NET
                     // always skip when processID = 0 or 4 which are system critical, or is equal to my processID or my parent process
                     // theory behind skipping the parent process is that it is conhost in a console app, explorer.exe if run by the user
                     // in a GUI based app, or another app in a suite that is using this app as part of it's functionality.
-                    if (PID != 0 && PID != 4 && PID != _myPID && PID != myParentPID)
+                    if (PID != 0 && PID != 4 && PID != _myPID && PID != _myParentPID)
                     {
                         // check for child processes of this process and skip them, not that KillEmAll.NET does this but other apps I might use this class in might...
                         // so get the parent process ID and make sure that isn't me.
@@ -112,19 +127,149 @@ namespace KillEmAll.NET
         void killProcess(string process, int PID)
         {
             bool bSuccess = false;
-            //
-            // TODO:  add features for optional termination and to google the process
-            //
-            //Console.WriteLine($"Terminate process:  \"{process}\"  [Y/n/g] (Yes/No/Google)?");
-            //ConsoleKeyInfo foo = Console.ReadKey();
-            //if (foo.KeyChar.ToString().ToLower().Equals("y"))
-            //{
-            //    success = killProcessByPID(PID);
-            //    Console.WriteLine($"Terminated={success}  [{process}]");
-            //}
 
-            bSuccess = killProcessByPID(PID);
-            Console.WriteLine($"Terminated={bSuccess}  [{process}]");
+            if (_debugMode)
+            {
+                Console.WriteLine($"");
+                Console.Write($"Terminate process:  \"{process}\"  [Y/n/g] (Yes/no/google)?");
+            GetUserInput:
+                ConsoleKeyInfo foo = Console.ReadKey();
+                Console.WriteLine($"");
+                string key = foo.KeyChar.ToString().ToLower();
+                switch (key)
+                {
+                    case "g":
+                        googleResult(process);
+                        goto GetUserInput;
+                    case "n":
+                        Console.WriteLine($"Skipped [{process}]");
+                        break;
+                    default:
+                        bSuccess = killProcessByPID(PID);
+                        Console.WriteLine($"Terminated={bSuccess} [{process}]");
+                        break;
+                }
+            }
+            else
+            {
+                bSuccess = killProcessByPID(PID);
+                Console.WriteLine($"Terminated={bSuccess} [{process}]");
+            }
+        }
+
+        void googleResult(string process)
+        {
+            // currently using Google, but this could be changed to DuckDuckGo or other..
+            const string searchPrefix = "https://www.google.com/search?hl=en&q=";
+
+            // pass through the filename filter first, then replace spaces and quotes for URL
+            string url = webSearchFileFilter(process);
+            url = url.Replace(" ", "%20");
+            url = url.Replace("\"", "%22");
+
+            try
+            {
+                Process.Start(searchPrefix + url);
+            }
+            catch (System.ComponentModel.Win32Exception noBrowser)
+            {
+                if (noBrowser.ErrorCode == -2147467259)
+                    Console.WriteLine($"No web browser detected!  [{noBrowser.Message}]");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error launching web browser!  [{ex.Message}]");
+            }
+        }
+
+        string webSearchFileFilter(string process)
+        {
+            // strip out variable information from file paths (e.g. drive letter and user directory names)
+            string sRet = process.Trim();
+            
+            // we don't need to do anything here if no full path
+            if (sRet.Contains(":"))
+            {
+                // strip drive letter, colon, and backslash
+                sRet = StripString(sRet, "\\", StripStringReturnType.ReturnAfterFirstDelimiter);
+
+                // are we in "Users\"
+                if (sRet.Substring(0, 6).ToLower().Contains("users\\"))
+                {
+                    // strip out "Users\"
+                    sRet = sRet.Substring(6);
+
+                    // strip out the next whatever it is 
+                    sRet = StripString(sRet, "\\", StripStringReturnType.ReturnAfterFirstDelimiter);
+
+                    // add back in "Users\" and add quotes between Users\" and "sRet but not wrapping quotes around the whole return
+                    // (full value will be always wrapped in quotes at the end of this procedure.)
+                    sRet = "Users\\\" \"" + sRet;
+                }
+            }
+            // wrap final return in quotes
+            return "\"" + sRet + "\"";
+        }
+
+        // borrowed with StripString and GetLastPos from my other code, so some of it isn't used here.
+        public enum StripStringReturnType { ReturnBeforeFirstDelimiter, ReturnAfterFirstDelimiter, ReturnBeforeLastDelimiter, ReturnAfterLastDelimiter }
+
+        string StripString(string OriginalString, string TheDelimiter, StripStringReturnType returnType = StripStringReturnType.ReturnBeforeFirstDelimiter)
+        {
+            string FirstPart;
+            string SecondPart;
+            int FirstChr = OriginalString.IndexOf(TheDelimiter);
+            if (FirstChr == -1)
+            {
+                return OriginalString;
+            }
+            else
+            {
+                bool lastDelim = false;
+                if (returnType == StripStringReturnType.ReturnBeforeLastDelimiter) lastDelim = true;
+                if (returnType == StripStringReturnType.ReturnAfterLastDelimiter) lastDelim = true;
+
+                if (lastDelim)
+                {
+                    int lastPos = 0;
+                    lastPos = GetLastPos(OriginalString, TheDelimiter);
+                    if (lastPos == -1)
+                        return OriginalString;
+
+                    FirstPart = OriginalString.Substring(0, lastPos);
+                    SecondPart = OriginalString.Substring(lastPos + TheDelimiter.Length);
+                    if (returnType == StripStringReturnType.ReturnBeforeLastDelimiter)
+                        return FirstPart;
+                    else
+                        return SecondPart;
+                }
+                else
+                {
+                    FirstPart = OriginalString.Substring(0, FirstChr);
+                    SecondPart = OriginalString.Substring(FirstChr + TheDelimiter.Length);
+                    if (returnType == StripStringReturnType.ReturnBeforeFirstDelimiter)
+                        return FirstPart;
+                    else
+                        return SecondPart;
+                }
+            }
+        }
+
+        private static int GetLastPos(string data, string word, StringComparison StringComp = StringComparison.OrdinalIgnoreCase)
+        {
+            int start = 0;
+            int at = 0;
+            int ret = 0;
+            int lastPos = -1;
+            while (at != -1)
+            {
+                at = data.IndexOf(word, start, StringComp);
+                if (at == -1) break;
+                lastPos = at;
+                start = at + 1;
+                ret++;
+            }
+            return lastPos;
         }
 
         bool killProcessByPID(int PID)
@@ -211,11 +356,11 @@ namespace KillEmAll.NET
         [DllImport("kernel32.dll", EntryPoint = "CreateToolhelp32Snapshot")]
         public static extern IntPtr CreateToolhelp32Snapshot(UInt32 dwFlags, UInt32 th32ProcessID);
 
-        [DllImport("kernel32.dll", EntryPoint = "Process32FirstW", SetLastError = true, CharSet = CharSet.Auto)]
+        [DllImport("kernel32.dll", EntryPoint = "Process32FirstW", SetLastError = true, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool Process32FirstW(IntPtr hSnapshot, ref PROCESSENTRY32W lppe);
 
-        [DllImport("kernel32.dll", EntryPoint = "Process32NextW", CharSet = CharSet.Auto)]
+        [DllImport("kernel32.dll", EntryPoint = "Process32NextW", CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool Process32NextW(IntPtr hSnapshot, ref PROCESSENTRY32W lppe);
 
@@ -223,7 +368,7 @@ namespace KillEmAll.NET
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr handle);
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         static extern bool QueryFullProcessImageNameW(IntPtr hProcess, uint dwFlags, [Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder lpExeName, ref int lpdwSize);
 
         public enum ProcessAccessFlags : uint
@@ -288,8 +433,16 @@ namespace KillEmAll.NET
         /// <returns>An instance of the Process class.</returns>
         public static Process GetParentProcess(int id)
         {
-            Process process = Process.GetProcessById(id);
-            return GetParentProcess(process.Handle);
+            try
+            {
+                Process process = Process.GetProcessById(id);
+                return GetParentProcess(process.Handle);
+            }
+            catch
+            {
+                // not found
+                return null;
+            }
         }
 
         /// <summary>
