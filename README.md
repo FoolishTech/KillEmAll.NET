@@ -1,5 +1,5 @@
 # KillEmAll.NET
-C# implementation of KillEmAll Mini from https://www.d7xtech.com/d7x/killemall/killemall-mini/  
+C# implementation of KillEmAll Mini from https://www.d7xtech.com/d7x/killemall/
   
 KillEmAll.NET is a ‘panic‘ button with an ‘ask questions later‘ attitude, designed to terminate unnecessary programs (those non-essential to Windows) and report the results in a console window.  
   
