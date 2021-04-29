@@ -56,6 +56,8 @@ namespace KillEmAll.NET
             ConsoleKeyInfo foo = Console.ReadKey();
             if (foo.KeyChar.ToString().ToLower().Equals("d"))
                 bRet = true;
+            // always clear console after prompt
+            Console.Clear();
             return bRet;
         }
 
@@ -76,7 +78,7 @@ namespace KillEmAll.NET
             // check passed command line arguments for the automation/no prompt arg
             foreach (string arg in args)
             {
-                string wordOnly = arg;
+                string wordOnly = arg.Trim();
 
                 // strip out any / or - passed with the arg
                 if (wordOnly.Substring(0, 1).Equals("/"))
@@ -89,12 +91,9 @@ namespace KillEmAll.NET
                     bRunAuto = true;
             }
 
-            // if not running automatically, show user prompt (and clear console after prompt)...
+            // if not running automatically, show user prompt...
             if (!bRunAuto)
-            {
                 bDebugMode = pressAnyKeyToStart();
-                Console.Clear();
-            }
 
             // call main functionality here
             try
@@ -110,7 +109,4 @@ namespace KillEmAll.NET
                 pressAnyKeyToExit();
         }
     }
-
-
-
 }

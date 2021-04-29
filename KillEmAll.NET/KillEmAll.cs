@@ -9,6 +9,9 @@ namespace KillEmAll.NET
 {
     class KillEmAll
     {
+        private string[] _internalPartialFileNameArray;
+        private Dictionary<string, string> _internalFileNames = new Dictionary<string, string>();
+        private Dictionary<string, string> _internalWindowsFileNames = new Dictionary<string, string>();
         private Dictionary<string, string> _internalWindowsFiles = new Dictionary<string, string>();
         private string _winDir;
         private string _sys32;
@@ -16,49 +19,73 @@ namespace KillEmAll.NET
         private int _myPID;
         private int _myParentPID = 0;
         private bool _debugMode;
+        private bool _isWinXP;
 
         public KillEmAll(bool debugMode = false)
         {
             if (debugMode)
                 _debugMode = true;
 
+            // this is reliable even when Environment.OSVersion is lying, because we only care if it is XP/2003 for this variable...
+            _isWinXP = Environment.OSVersion.Version.ToString().Substring(0, 1).Equals("5");
+
             _winDir = System.IO.Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.System)).ToString().ToLower() + "\\";
             _sys32 = _winDir + "system32\\";
             _sys64 = _winDir + "syswow64\\";
 
+            // get my process ID for skipping in the Start() loop
             _myPID = Process.GetCurrentProcess().Id;
 
-            // get parent process.  added try/catch because this will FAIL when parent isn't running;
-            // like when user selects to run this process as administrator from this process at the user level,
-            // because parent process at the user level terminates self after running this process again as administrator
-            // it's ok for _myParentPID to stay at 0 as initialized.
-            try
-            {
-                _myParentPID = ParentProcessUtilities.GetParentProcess(_myPID).Id;
-            }
-            catch
-            {
-            }
-            
-            // these are Windows processes that should not be terminated, full paths
-            string[] temp = { _winDir + "explorer.exe", _sys32 + "services.exe", _sys32 + "winlogon.exe", _sys32 + "lsass.exe", _sys32 + "logonui.exe", _sys32 + "spoolsv.exe",
+            // get parent process for the same reason as above...
+            // it's ok for _myParentPID to stay at 0 as initialized if parent process isn't running.
+            var parentProcess = ParentProcessUtilities.GetParentProcess(_myPID);
+            if (parentProcess != null)
+                _myParentPID = parentProcess.Id;
+
+            // these are Windows processes that should not be terminated, or that it's pointless to try and terminate, full paths.  
+            // of course add 3rd party processes (full paths) as desired, like the last two added for VirtualBox.
+            string[] filePathsArr = { _winDir + "explorer.exe", _sys32 + "services.exe", _sys32 + "winlogon.exe", _sys32 + "lsass.exe", _sys32 + "logonui.exe", _sys32 + "spoolsv.exe",
                 _sys32 + "alg.exe", _sys32 + "lsm.exe", _sys32 + "audiodg.exe", _sys32 + "dllhost.exe", _sys32 + "msdtc.exe", _sys32 + "wscntfy.exe", _sys32 + "wudfhost.exe",
                 _sys32 + "wininit.exe", _sys32 + "mdm.exe", _sys32 + "rdpclip.exe", _sys32 + "taskmgr.exe", _sys32 + "dwm.exe", _sys32 + "taskhost.exe", _sys32 + "taskeng.exe",
                 _sys32 + "sppsvc.exe", _sys32 + "conhost.exe", _sys32 + "wisptis.exe", _sys32 + "tabtip.exe", _sys32 + "inputpersonalization.exe", _sys32 + "wbem\\wmiprvse.exe",
-                _sys64 + "wbem\\wmiprvse.exe", _sys32 + "ui0detect.exe", _sys32 + "sihost.exe", _sys32 + "wlms\\wlms.exe", _sys32 + "smss.exe",
+                _sys64 + "wbem\\wmiprvse.exe", _sys32 + "ui0detect.exe", _sys32 + "sihost.exe", _sys32 + "ctfmon.exe", _sys32 + "wlms\\wlms.exe", _sys32 + "smss.exe",
                 _sys32 + "csrss.exe", _sys32 + "svchost.exe", _sys64 + "svchost.exe", _sys32 + "dashost.exe", _sys32 + "runtimebroker.exe", _sys32 + "taskhostw.exe",
-                _sys32 + "sppsvc.exe", _sys32 + "fontdrvhost.exe", _sys32 + "systemsettingsbroker.exe", _sys32 + "securityhealthservice.exe", _sys32 + "sgrmbroker.exe"};
-            foreach (string i in temp)
+                _sys32 + "sppsvc.exe", _sys32 + "fontdrvhost.exe", _sys32 + "systemsettingsbroker.exe", _sys32 + "securityhealthservice.exe", _sys32 + "sgrmbroker.exe",
+                _sys32 + "vboxtray.exe", _sys32 + "vboxservice.exe" };
+            foreach (string fullPath in filePathsArr)
             {
                 try
                 {
-                    _internalWindowsFiles.Add(i.ToLower(), "");
+                    // add to full path dictionary
+                    _internalWindowsFiles.Add(fullPath.ToLower(), "");
+
+                    // now strip path for the filename only dictionary
+                    string theFileOnly = StripString(fullPath, "\\", StripStringReturnType.ReturnAfterLastDelimiter);
+                    _internalWindowsFileNames.Add(theFileOnly.ToLower(), "");
                 }
                 catch
                 {
-
                 }
             }
+            // add any whole filenames to this dictionary - these will be whitelisted regardless of path!
+            // the first two are Windows Defender files where the path may not be as predictable and I didn't feel like tracking down everywhere on every OS/version...
+            // the second two are for Teamviewer, and they could be in any %programfiles(x86)% or %appdata%...
+            string[] fileNamesArr = { "msmpeng.exe", "nissrv.exe", "tv_w32.exe", "tv_x64.exe", "d7xsvcwait.exe" };
+            foreach (string fileName in fileNamesArr)
+            {
+                try
+                {
+                    _internalFileNames.Add(fileName.ToLower(), "");
+                }
+                catch
+                {
+                }
+            }
+            // add partial filenames for a 'contains' search - this also ignores path.  this was implemented for remote support software or other 3rd party apps.
+            // keep it short and sweet since this is a slow search method, but NOT too generic!  this is whitelisting every file with the exact string
+            // included in the filename, regardless of what path it is in!
+            _internalPartialFileNameArray = new string[] { "d7x ", "cryptoprevent", "teamviewer", "screenconnect", "lmiguardian", "lmi_", "logmein", 
+                                                           "callingcard", "unattended" };
         }
 
         public void Start()
@@ -97,23 +124,40 @@ namespace KillEmAll.NET
                                 // another quick check for system critical processes (that aren't actually files with extensions)
                                 if (!processIsSystemCritical(filename))
                                 {
-                                    // get the full path AFTER the checks above, because getPathFromPID can throw an exception trying to OpenProcess on PID=0, etc.
-                                    string fullpath = getPathFromPID(PID).ToLower();
+                                    // check the filename only whitelist 
+                                    if (!_internalFileNames.ContainsKey(filename))
+                                    {
+                                        // check an array of partial filenames
+                                        bool bPartialMatch = false;
+                                        foreach (string partialName in _internalPartialFileNameArray)
+                                        {
+                                            if (filename.Contains(partialName))
+                                            {
+                                                bPartialMatch = true;
+                                                break;
+                                            }
+                                        }
+                                        // if no match, proceed
+                                        if (!bPartialMatch)
+                                        {
+                                            // get the full path AFTER the checks above, because getPathFromPID can throw an exception trying to OpenProcess on PID=0, etc.
+                                            string fullpath = getPathFromPID(PID).ToLower();
 
-                                    if (fullpath.Contains("\\"))
-                                    {
-                                        // we have a full path, so check against full path whitelist
-                                        if (!_internalWindowsFiles.ContainsKey(fullpath))
-                                            killProcess(fullpath, PID);
-                                    }
-                                    else
-                                    {
-                                        // didn't obtain a full path, working with just the filename (this is 99.9% of the time a Windows file in a system dir)
-                                        // I didn't bother to create a second/single EXE whitelist, so prepend a system path and check the whitelist...
-                                        // don't test for _winDir because we always obtain a path from Explorer.exe, the only file from _winDir in the whitelist.
-                                        if (!_internalWindowsFiles.ContainsKey(_sys32 + filename))
-                                            if (!_internalWindowsFiles.ContainsKey(_sys64 + filename))
-                                                killProcess(filename, PID);
+                                            if (fullpath.Contains("\\"))
+                                            {
+                                                // we have a full path, so check against full path whitelist
+                                                if (!_internalWindowsFiles.ContainsKey(fullpath))
+                                                    killProcess(fullpath, PID);
+                                            }
+                                            else
+                                            {
+                                                // on failure to identify a full path, work with the filenames only.
+                                                // many Windows files and possibly others will fail path identification when this app is running at user level;
+                                                // chances are if we can't identify the path we probably can't terminate the app either, but no harm in trying anyway...
+                                                if (!_internalWindowsFileNames.ContainsKey(filename))
+                                                    killProcess(filename, PID);
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -212,7 +256,7 @@ namespace KillEmAll.NET
         }
 
         // borrowed with StripString and GetLastPos from my other code, so some of it isn't used here.
-        public enum StripStringReturnType { ReturnBeforeFirstDelimiter, ReturnAfterFirstDelimiter, ReturnBeforeLastDelimiter, ReturnAfterLastDelimiter }
+        enum StripStringReturnType { ReturnBeforeFirstDelimiter, ReturnAfterFirstDelimiter, ReturnBeforeLastDelimiter, ReturnAfterLastDelimiter }
 
         string StripString(string OriginalString, string TheDelimiter, StripStringReturnType returnType = StripStringReturnType.ReturnBeforeFirstDelimiter)
         {
@@ -255,7 +299,7 @@ namespace KillEmAll.NET
             }
         }
 
-        private static int GetLastPos(string data, string word, StringComparison StringComp = StringComparison.OrdinalIgnoreCase)
+        static int GetLastPos(string data, string word, StringComparison StringComp = StringComparison.OrdinalIgnoreCase)
         {
             int start = 0;
             int at = 0;
@@ -307,39 +351,62 @@ namespace KillEmAll.NET
             IntPtr hProcess;
             bool bSuccess = false;
             var buffer = new StringBuilder(1024);
+            int size = buffer.Capacity;
             string sRet = "";
+            ProcessAccessFlags pFlags;
 
-            // this call requires Windows Vista+ due to the flag QueryLimitedInformation,
             // see https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights
-            // this call should just fail on XP/2003 so flow continues to use the .NET method below.
-            hProcess = OpenProcess(ProcessAccessFlags.QueryLimitedInformation, false, PID);
+            if (_isWinXP)
+                pFlags = ProcessAccessFlags.QueryInformation;
+            else
+                pFlags = ProcessAccessFlags.QueryLimitedInformation;
+
+            // open process
+            hProcess = OpenProcess(pFlags, false, PID);
 
             if (hProcess != IntPtr.Zero)
             {
-                int size = buffer.Capacity;
-                bSuccess = QueryFullProcessImageNameW(hProcess, 0, buffer, ref size);
-                sRet = buffer.ToString();
+                if (!_isWinXP)
+                {
+                    // this will fail on XP/2003
+                    // also, some instances of Vista may not have the right dll version to support this call, hence the try/catch.
+                    try
+                    {
+                        bSuccess = QueryFullProcessImageNameW(hProcess, 0, buffer, ref size);
+                    }
+                    catch
+                    {
+                    }
+                }
+                // actually, the .NET method just throws exceptions on access denied and is not successful retrieving any path that fails above...
+                // leaving this code here so I can remember it isn't worth using.
+                //
+                //if (!bSuccess)
+                //{
+                //    // on failure above, do it the .NET way
+                //    var process = Process.GetProcessById(PID);
+                //    // below is throwing exception on access denied
+                //    try
+                //    {
+                //        sRet = process.MainModule.FileName;
+                //    }
+                //    catch
+                //    {
+                //    }
+                //}
+                if (bSuccess)
+                    sRet = buffer.ToString();
+                else
+                {
+                    uint ret = GetModuleFileNameExW(hProcess, IntPtr.Zero, buffer, (uint)size);
+                    if (ret != 0)
+                        sRet = buffer.ToString();
+                }
             }
-            // actually, the .NET method just throws exceptions on access denied and is not successful retrieving any path that fails above...
-            // leaving this code here so I can remember it isn't worth using.
-            //
-            //if (!bSuccess)
-            //{
-            //    // on failure above, do it the .NET way, rather than wrestle with GetModuleFileNameExW in C#
-            //    var process = Process.GetProcessById(PID);
-            //    // below is throwing exception on access denied
-            //    try
-            //    {
-            //        sRet = process.MainModule.FileName;
-            //    }
-            //    catch
-            //    {
-            //    }
-            //}
             return sRet;
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public struct PROCESSENTRY32W
         {
             public uint dwSize;
@@ -369,7 +436,10 @@ namespace KillEmAll.NET
         public static extern bool CloseHandle(IntPtr handle);
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        static extern bool QueryFullProcessImageNameW(IntPtr hProcess, uint dwFlags, [Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder lpExeName, ref int lpdwSize);
+        static extern bool QueryFullProcessImageNameW(IntPtr hProcess, uint dwFlags, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder lpExeName, ref int lpdwSize);
+        
+        [DllImport("psapi.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+        static extern uint GetModuleFileNameExW(IntPtr hProcess, IntPtr hModule, [Out] StringBuilder lpBaseName, uint nSize);
 
         public enum ProcessAccessFlags : uint
         {
