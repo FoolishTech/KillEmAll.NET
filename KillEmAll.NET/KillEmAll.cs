@@ -21,6 +21,9 @@ namespace KillEmAll.NET
         private bool _debugMode;
         private bool _isWinXP;
 
+        private StringBuilder sbLog = new StringBuilder();
+        public string Log() => sbLog.ToString();
+
         public KillEmAll(bool debugMode = false)
         {
             if (debugMode)
@@ -68,9 +71,10 @@ namespace KillEmAll.NET
                 }
             }
             // add any whole filenames to this dictionary - these will be whitelisted regardless of path!
-            // the first two are Windows Defender files where the path may not be as predictable and I didn't feel like tracking down everywhere on every OS/version...
+            // the first three are Windows Defender files where the path may not be as predictable and I didn't feel like tracking down everywhere on every OS/version...
             // the second two are for Teamviewer, and they could be in any %programfiles(x86)% or %appdata%...
-            string[] fileNamesArr = { "msmpeng.exe", "nissrv.exe", "tv_w32.exe", "tv_x64.exe", "d7xsvcwait.exe" };
+            // the last is related to our d7x tech tool.
+            string[] fileNamesArr = { "msmpeng.exe", "msmpengcp.exe", "nissrv.exe", "tv_w32.exe", "tv_x64.exe", "d7xsvcwait.exe" };
             foreach (string fileName in fileNamesArr)
             {
                 try
@@ -84,7 +88,7 @@ namespace KillEmAll.NET
             // add partial filenames for a 'contains' search - this also ignores path.  this was implemented for remote support software or other 3rd party apps.
             // keep it short and sweet since this is a slow search method, but NOT too generic!  this is whitelisting every file with the exact string
             // included in the filename, regardless of what path it is in!
-            _internalPartialFileNameArray = new string[] { "d7x ", "cryptoprevent", "teamviewer", "screenconnect", "lmiguardian", "lmi_", "logmein", 
+            _internalPartialFileNameArray = new string[] { "d7x v", "cryptoprevent", "teamviewer", "screenconnect", "lmiguardian", "lmi_", "logmein", 
                                                            "callingcard", "unattended" };
         }
 
@@ -171,14 +175,15 @@ namespace KillEmAll.NET
         void killProcess(string process, int PID)
         {
             bool bSuccess = false;
+            string sResult = "";
 
             if (_debugMode)
             {
-                Console.WriteLine($"");
+                Console.WriteLine("");
                 Console.Write($"Terminate process:  \"{process}\"  [Y/n/g] (Yes/no/google)?");
             GetUserInput:
                 ConsoleKeyInfo foo = Console.ReadKey();
-                Console.WriteLine($"");
+                Console.WriteLine("");
                 string key = foo.KeyChar.ToString().ToLower();
                 switch (key)
                 {
@@ -186,18 +191,28 @@ namespace KillEmAll.NET
                         googleResult(process);
                         goto GetUserInput;
                     case "n":
-                        Console.WriteLine($"Skipped [{process}]");
+                        Console.WriteLine($"Skipped \"{process}\"");
                         break;
                     default:
                         bSuccess = killProcessByPID(PID);
-                        Console.WriteLine($"Terminated={bSuccess} [{process}]");
+                        if (bSuccess)
+                            sResult = "True ";  // pad an extra space to match length of 'FALSE' for text formatting on screen/in log file
+                        else
+                            sResult = "FALSE";  // set text to uppercase to easily recognize a failure
+                        sbLog.AppendLine($"Terminated={sResult} \"{process}\"");
+                        Console.WriteLine($"Terminated={sResult} \"{process}\"");
                         break;
                 }
             }
             else
             {
                 bSuccess = killProcessByPID(PID);
-                Console.WriteLine($"Terminated={bSuccess} [{process}]");
+                if (bSuccess)
+                    sResult = "True ";  // pad an extra space to match length of 'FALSE' for text formatting on screen/in log file
+                else
+                    sResult = "FALSE";  // set text to uppercase to easily recognize a failure
+                sbLog.AppendLine($"Terminated={sResult} \"{process}\"");
+                Console.WriteLine($"Terminated={sResult} \"{process}\"");
             }
         }
 
