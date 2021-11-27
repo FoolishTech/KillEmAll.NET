@@ -31,15 +31,8 @@ namespace KillEmAll.NET
             if (debugMode)
             {
                 _debugMode = true;
-
                 // get new settings that are only used in debug mode anyway
-                if (Program.IniRead("Search", "FileNameOnly") == "1")
-                    _searchFileNameOnly = true;
-
-                // default to google if not configured
-                _searchEngineURL = Program.IniRead("Search", "URL");
-                if (_searchEngineURL.Trim().Length < 1)
-                    _searchEngineURL = "https://www.google.com/search?hl=en&q=";
+                getSettingsFromINI();
             }
 
             // this is reliable even when Environment.OSVersion is lying, because we only care if it is XP/2003 for this variable...
@@ -103,6 +96,20 @@ namespace KillEmAll.NET
             // included in the filename, regardless of what path it is in!
             _internalPartialFileNameArray = new string[] { "d7x v", "cryptoprevent", "teamviewer", "screenconnect", "lmiguardian", "lmi_", "logmein", 
                                                            "callingcard", "unattended" };
+        }
+
+        private void getSettingsFromINI()
+        {
+            // get new settings that are only used in debug mode anyway
+            if (Program.IniRead("Search", "FileNameOnly") == "1")
+                _searchFileNameOnly = true;
+            else
+                _searchFileNameOnly = false;    // doing this else set to FALSE because we might call this to method modify settings not just obtain them to begin with.
+
+            // default to google if not configured
+            _searchEngineURL = Program.IniRead("Search", "URL");
+            if (_searchEngineURL.Trim().Length < 1)
+                _searchEngineURL = "https://www.google.com/search?hl=en&q=";
         }
 
         public void Start()
@@ -198,6 +205,11 @@ namespace KillEmAll.NET
 
             if (_debugMode)
             {
+                Console.WriteLine("");
+                Console.Write($"Terminate process:  \"{sSubject}\"  [Y/n/w] (Yes/No/WebSearch)?");
+
+            GetUserInput:
+                // moved from before GetUserInput: because we may change settings mid-program now and this variable needs to be reinterpreted.
                 // determine search string based on config setting; default to processName when setting does not exist
                 string searchString = "";
                 if (_searchFileNameOnly)
@@ -205,9 +217,7 @@ namespace KillEmAll.NET
                 else
                     searchString = sSubject;
 
-                Console.WriteLine("");
-                Console.Write($"Terminate process:  \"{sSubject}\"  [Y/n/w] (Yes/No/WebSearch)?");
-            GetUserInput:
+                // read key
                 ConsoleKeyInfo foo = Console.ReadKey();
                 Console.WriteLine("");
                 string key = foo.KeyChar.ToString().ToLower();
@@ -218,6 +228,12 @@ namespace KillEmAll.NET
                         _debugMode = false;
                         bKill = true;
                         break;
+                    case "c":
+                        System.Windows.Forms.Form config = new ConfigUI();
+                        config.ShowDialog();
+                        // get potential settings changes from INI
+                        getSettingsFromINI();
+                        goto GetUserInput;
                     case "g":
                         webSearch(searchString);
                         goto GetUserInput;
@@ -255,6 +271,7 @@ namespace KillEmAll.NET
             string url = webSearchFileFilter(searchString);
             url = url.Replace(" ", "%20");
             url = url.Replace("\"", "%22");
+            url = url.Replace("\\", "%5C");
 
             try
             {

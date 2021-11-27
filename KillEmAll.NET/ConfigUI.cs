@@ -46,6 +46,9 @@ namespace KillEmAll.NET
             if (Program.IniRead("Startup", "ForceAdmin") == "1")
                 chkStartupRunAsAdmin.Checked = true;
 
+            if (Program.IniRead("Startup", "AutoKill") == "1")
+                chkStartupAutoKill.Checked = true;
+
             if (Program.IniRead("Search", "FileNameOnly") == "1")
                 chkSearchFileNameOnly.Checked = true;
 
@@ -77,6 +80,12 @@ namespace KillEmAll.NET
             }
 
             // continue writing settings since we were able to save the first one successfully.
+
+            if (chkStartupAutoKill.Checked)
+                value = "1";
+            else
+                value = "0";
+            Program.IniWrite("Startup", "AutoKill", value);
 
             if (chkSearchFileNameOnly.Checked)
                 value = "1";
@@ -156,6 +165,5 @@ namespace KillEmAll.NET
                     break;
             }
         }
-
     }
 }

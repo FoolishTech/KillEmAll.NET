@@ -14,6 +14,7 @@ namespace KillEmAll.NET
         {
             bool bDebugMode = false;
             bool bRunAuto = false;
+            bool bAutoStart = false;
             bool bLogToFile = false;
 
             // get user type for log text and console title and set end message based on user environment
@@ -67,10 +68,14 @@ namespace KillEmAll.NET
                 }
             }
 
+            if (IniRead("Startup", "AutoKill") == "1")
+                bAutoStart = true;
+
             // if not running automatically, show user prompt...
-            if (!bDebugMode)
-                if (!bRunAuto)
-                    bDebugMode = pressAnyKeyToStart();
+            if (!bAutoStart)
+                if (!bDebugMode)
+                    if (!bRunAuto)
+                        bDebugMode = pressAnyKeyToStart();
 
             // if we're in debug mode we'll append a string to the end of the logText
             string sDebugAddendum = "";
@@ -94,7 +99,7 @@ namespace KillEmAll.NET
                 // append to log text
                 logText += foo.Log();
                 // write end msg
-                Console.WriteLine(endMsg);
+                Console.WriteLine("\n" + endMsg);
             }
             catch (Exception ex)
             {
@@ -133,36 +138,57 @@ namespace KillEmAll.NET
         {
             bool showTextFileOnClose = false;
 
+            // if we're starting up and killing automatically without prompt, we need to know we can get to Config at the end...
+            string appendText = "";
+            if (IniRead("Startup", "AutoKill") == "1")
+                appendText = "Press 'C' for KillEmAll.NET Configuration\n";
+
             Console.WriteLine("");
             if (!isRunningAsAdmin())
             {
                 // since we're not running as administrator, prompt user to run again as admin...
-                Console.Write("Press 'L' to save results to KillEmAll_Log.txt\nPress 'A' to Run again as Administrator\nPress any other key to exit. . .");
+                Console.Write("Press 'L' to save results to KillEmAll_Log.txt\n" + appendText + "Press 'A' to Run again as Administrator\nPress any other key to exit. . .");
             GetResponse:
                 ConsoleKeyInfo foo = Console.ReadKey();
-                if (foo.KeyChar.ToString().ToLower().Equals("a"))
+                string key = foo.KeyChar.ToString().ToLower();
+                switch (key)
                 {
-                    // if function returns true, flag this bool = false so we don't pop up the text file when we're relaunching as admin
-                    if (launchSelfAsAdministrator())
-                        showTextFileOnClose = false;
-                }
-                else if (foo.KeyChar.ToString().ToLower().Equals("l"))
-                {
-                    logTextToFile(logText);
-                    showTextFileOnClose = true;
-                    Console.Write("Press 'A' to Run again as Administrator\nPress any other key to exit. . .");
-                    goto GetResponse;
+                    case "a":
+                        // if function returns true, flag this bool = false so we don't pop up the text file when we're relaunching as admin
+                        if (launchSelfAsAdministrator())
+                            showTextFileOnClose = false;
+                        break;
+                    
+                    case "c":
+                        System.Windows.Forms.Form config = new ConfigUI();
+                        config.ShowDialog();
+                        goto GetResponse;
+
+                    case "l":
+                        logTextToFile(logText);
+                        showTextFileOnClose = true;
+                        Console.Write(appendText + "Press 'A' to Run again as Administrator\nPress any other key to exit. . .");
+                        goto GetResponse;
                 }
             }
             else
             {
                 // already running as administrator, prompt to exit only.
-                Console.Write("Press 'L' to save results to KillEmAll_Log.txt\nPress any other key to exit. . .");
+                Console.Write("Press 'L' to save results to KillEmAll_Log.txt\n" + appendText + "Press any other key to exit. . .");
+            GetResponse2:
                 ConsoleKeyInfo foo = Console.ReadKey();
-                if (foo.KeyChar.ToString().ToLower().Equals("l"))
+                string key = foo.KeyChar.ToString().ToLower();
+                switch (key)
                 {
-                    logTextToFile(logText);
-                    showTextFileOnClose = true;
+                    case "c":
+                        System.Windows.Forms.Form config = new ConfigUI();
+                        config.ShowDialog();
+                        goto GetResponse2;
+
+                    case "l":
+                        logTextToFile(logText);
+                        showTextFileOnClose = true;
+                        break;
                 }
             }
 
