@@ -20,6 +20,8 @@ namespace KillEmAll.NET
         private int _myParentPID = 0;
         private bool _debugMode;
         private bool _isWinXP;
+        private bool _searchFileNameOnly;
+        private string _searchEngineURL;
 
         private StringBuilder sbLog = new StringBuilder();
         public string Log() => sbLog.ToString();
@@ -27,7 +29,18 @@ namespace KillEmAll.NET
         public KillEmAll(bool debugMode = false)
         {
             if (debugMode)
+            {
                 _debugMode = true;
+
+                // get new settings that are only used in debug mode anyway
+                if (Program.IniRead("Search", "FileNameOnly") == "1")
+                    _searchFileNameOnly = true;
+
+                // default to google if not configured
+                _searchEngineURL = Program.IniRead("Search", "URL");
+                if (_searchEngineURL.Trim().Length < 1)
+                    _searchEngineURL = "https://www.google.com/search?hl=en&q=";
+            }
 
             // this is reliable even when Environment.OSVersion is lying, because we only care if it is XP/2003 for this variable...
             _isWinXP = Environment.OSVersion.Version.ToString().Substring(0, 1).Equals("5");
@@ -151,7 +164,7 @@ namespace KillEmAll.NET
                                             {
                                                 // we have a full path, so check against full path whitelist
                                                 if (!_internalWindowsFiles.ContainsKey(fullpath))
-                                                    killProcess(fullpath, PID);
+                                                    killProcess(PID, filename, fullpath);
                                             }
                                             else
                                             {
@@ -159,7 +172,7 @@ namespace KillEmAll.NET
                                                 // many Windows files and possibly others will fail path identification when this app is running at user level;
                                                 // chances are if we can't identify the path we probably can't terminate the app either, but no harm in trying anyway...
                                                 if (!_internalWindowsFileNames.ContainsKey(filename))
-                                                    killProcess(filename, PID);
+                                                    killProcess(PID, filename);
                                             }
                                         }
                                     }
@@ -172,63 +185,80 @@ namespace KillEmAll.NET
             }
         }
 
-        void killProcess(string process, int PID)
+        void killProcess(int PID, string processName, string fullPath = "")
         {
             bool bSuccess = false;
+            bool bKill = false;
             string sResult = "";
+            
+            // use full path (only if we have one) for initial user display and log text, else use process name only.
+            string sSubject = processName;
+            if (fullPath.Contains("\\"))
+                sSubject = fullPath;
 
             if (_debugMode)
             {
+                // determine search string based on config setting; default to processName when setting does not exist
+                string searchString = "";
+                if (_searchFileNameOnly)
+                    searchString = processName;
+                else
+                    searchString = sSubject;
+
                 Console.WriteLine("");
-                Console.Write($"Terminate process:  \"{process}\"  [Y/n/g] (Yes/no/google)?");
+                Console.Write($"Terminate process:  \"{sSubject}\"  [Y/n/w] (Yes/No/WebSearch)?");
             GetUserInput:
                 ConsoleKeyInfo foo = Console.ReadKey();
                 Console.WriteLine("");
                 string key = foo.KeyChar.ToString().ToLower();
                 switch (key)
                 {
+                    case "a":
+                        Console.WriteLine("\nAborting Debug Mode (Terminating all remaining processes). . .\n");
+                        _debugMode = false;
+                        bKill = true;
+                        break;
                     case "g":
-                        googleResult(process);
+                        webSearch(searchString);
+                        goto GetUserInput;
+                    case "w":
+                        webSearch(searchString);
                         goto GetUserInput;
                     case "n":
-                        Console.WriteLine($"Skipped \"{process}\"");
+                        Console.WriteLine($"Skipped \"{processName}\"");
                         break;
                     default:
-                        bSuccess = killProcessByPID(PID);
-                        if (bSuccess)
-                            sResult = "True ";  // pad an extra space to match length of 'FALSE' for text formatting on screen/in log file
-                        else
-                            sResult = "FALSE";  // set text to uppercase to easily recognize a failure
-                        sbLog.AppendLine($"Terminated={sResult} \"{process}\"");
-                        Console.WriteLine($"Terminated={sResult} \"{process}\"");
+                        bKill = true;
                         break;
                 }
             }
             else
+            {
+                bKill = true;
+            }
+
+            if (bKill)
             {
                 bSuccess = killProcessByPID(PID);
                 if (bSuccess)
                     sResult = "True ";  // pad an extra space to match length of 'FALSE' for text formatting on screen/in log file
                 else
                     sResult = "FALSE";  // set text to uppercase to easily recognize a failure
-                sbLog.AppendLine($"Terminated={sResult} \"{process}\"");
-                Console.WriteLine($"Terminated={sResult} \"{process}\"");
+                sbLog.AppendLine($"Terminated={sResult} \"{sSubject}\"");
+                Console.WriteLine($"Terminated={sResult} \"{processName}\"");
             }
         }
 
-        void googleResult(string process)
+        void webSearch(string searchString)
         {
-            // currently using Google, but this could be changed to DuckDuckGo or other..
-            const string searchPrefix = "https://www.google.com/search?hl=en&q=";
-
             // pass through the filename filter first, then replace spaces and quotes for URL
-            string url = webSearchFileFilter(process);
+            string url = webSearchFileFilter(searchString);
             url = url.Replace(" ", "%20");
             url = url.Replace("\"", "%22");
 
             try
             {
-                Process.Start(searchPrefix + url);
+                Process.Start(_searchEngineURL + url);
             }
             catch (System.ComponentModel.Win32Exception noBrowser)
             {

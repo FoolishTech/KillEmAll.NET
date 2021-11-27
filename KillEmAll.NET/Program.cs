@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace KillEmAll.NET
 {
     class Program
     {
+        static string iniFile;
+
         static void Main(string[] args)
         {
             bool bDebugMode = false;
@@ -22,9 +26,20 @@ namespace KillEmAll.NET
             else
                 endMsg += "  If you are still experiencing issues, run this app again as Administrator.";
 
-            // set console title with version info
-            var proc = Process.GetCurrentProcess();            
+            // create the proc object to set console title with version info and INI file variable
+            var proc = Process.GetCurrentProcess();
             Console.Title = "KillEmAll.NET v" + proc.MainModule.FileVersionInfo.ProductVersion + " (by www.d7xTech.com) - Running as " + userType;
+            iniFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll.NET.ini";
+
+            // before anything else, determine if we need to force launch as admin
+            if (!isRunningAsAdmin())
+            {
+                if (IniRead("Startup", "ForceAdmin") == "1")
+                {
+                    launchSelfAsAdministrator();
+                    Environment.Exit(0);
+                }
+            }
 
             // check passed command line arguments for the automation/no prompt arg
             foreach (string arg in args)
@@ -65,7 +80,11 @@ namespace KillEmAll.NET
             // start log text
             DateTime startTime = DateTime.Now;
             string logText = "Started on " + Environment.MachineName + " at " + startTime.ToString("MM/dd/yyyy h:mm:ss tt") + "...  (Running as " + userType + ")" + sDebugAddendum + "\n\n";
-            Console.Write(logText);
+
+            if (bDebugMode)
+                Console.Write(logText + "Press 'A' at any time to Abort Debug mode and terminate all processes.\n");
+            else
+                Console.Write(logText);
 
             // call main functionality here
             try
@@ -92,9 +111,17 @@ namespace KillEmAll.NET
             // returns true if 'debug mode' is desired.
             bool bRet = false;
             Console.WriteLine("WARNING:  ANY DATA NOT SAVED WILL BE LOST!  (Close this window to abort.)\n");
-            Console.WriteLine("Press 'D' for Debug Mode (prompt before each program termination)\n");
+            Console.WriteLine("Press 'C' for KillEmAll.NET Configuration");
+            Console.WriteLine("Press 'D' for Debug Mode (prompt before each program termination)");
             Console.Write("Press any other key to start. . .");
+        GetInput:
             ConsoleKeyInfo foo = Console.ReadKey();
+            if (foo.KeyChar.ToString().ToLower().Equals("c"))
+            {
+                System.Windows.Forms.Form config = new ConfigUI();
+                config.ShowDialog();
+                goto GetInput;
+            }
             if (foo.KeyChar.ToString().ToLower().Equals("d"))
                 bRet = true;
             // always clear console after prompt
@@ -220,5 +247,25 @@ namespace KillEmAll.NET
             }
             return ret;
         }
+
+
+        [DllImport("kernel32.dll")]
+        private static extern int GetPrivateProfileString(string section, string key, string defaultVal, StringBuilder retVal, int size, string lpFileName);
+
+        public static string IniRead(string Section, string Key)
+        {
+            StringBuilder temp = new StringBuilder(255);
+            int i = GetPrivateProfileString(Section, Key, "", temp, 255, iniFile);
+            return temp.ToString();
+        }
+
+        [DllImport("kernel32.dll")]
+        private static extern bool WritePrivateProfileString(string section, string key, string val, string lpFileName);
+
+        public static bool IniWrite(string Section, string Key, string Value)
+        {
+            return WritePrivateProfileString(Section, Key, Value, iniFile);
+        }
+
     }
 }
