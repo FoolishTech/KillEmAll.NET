@@ -8,29 +8,29 @@ namespace KillEmAll.NET
 {
     class Program
     {
-        static string iniFile;
-
+        static string _iniFile;
+        static string _userType = "Standard User";
+        static string _endMsg = "KillEmAll Completed!";
+        static bool _bLogToFile = false;
+        static bool _showTextFileOnClose = false;
         static void Main(string[] args)
         {
             bool bDebugMode = false;
             bool bRunAuto = false;
             bool bAutoStart = false;
-            bool bLogToFile = false;
 
             // get user type for log text and console title and set end message based on user environment
-            string userType = "Standard User";
-            string endMsg = "KillEmAll Completed!";
             if (isRunningAsAdmin())
-                userType = "Administrator";
+                _userType = "Administrator";
             else if (isRunningAsSystem())
-                userType = "System";
+                _userType = "System";
             else
-                endMsg += "  If you are still experiencing issues, run this app again as Administrator.";
+                _endMsg += "  If you are still experiencing issues, run this app again as Administrator.";
 
             // create the proc object to set console title with version info and INI file variable
             var proc = Process.GetCurrentProcess();
-            Console.Title = "KillEmAll.NET v" + proc.MainModule.FileVersionInfo.ProductVersion + " (by www.d7xTech.com) - Running as " + userType;
-            iniFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll.NET.ini";
+            Console.Title = "KillEmAll.NET v" + proc.MainModule.FileVersionInfo.ProductVersion + " (by www.d7xTech.com) - Running as " + _userType;
+            _iniFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll.NET.ini";
 
             // before anything else, determine if we need to force launch as admin
             if (!isRunningAsAdmin())
@@ -57,25 +57,36 @@ namespace KillEmAll.NET
                 switch (wordOnly.ToLower())
                 {
                     case "auto":
-                        bRunAuto = true;
+                        bRunAuto = true;    // separate from bAutoStart, this option forces the app to end without prompt as well
+                        bAutoStart = true;  // force the app to start without prompt, but not end without prompt
                         break;
                     case "debug":
                         bDebugMode = true;
                         break;
                     case "log":
-                        bLogToFile = true;
+                        _bLogToFile = true;
                         break;
                 }
             }
 
-            if (IniRead("Startup", "AutoKill") == "1")
-                bAutoStart = true;
+            // if we didn't set this above with the /auto switch, check the INI settings
+            if (!bAutoStart)
+                if (IniRead("Startup", "AutoKill") == "1")
+                    bAutoStart = true;  // force the app to start without prompt, but not end without prompt
 
-            // if not running automatically, show user prompt...
+            // if not starting or completely running automatically, show user prompt...
             if (!bAutoStart)
                 if (!bDebugMode)
-                    if (!bRunAuto)
                         bDebugMode = pressAnyKeyToStart();
+
+            // moved the rest to a new method so we can repeat KillEmAll at the end if desired
+            startKillEmAll(bDebugMode, bRunAuto);
+        }
+
+        static void startKillEmAll(bool bDebugMode = false, bool bRunAuto = false)
+        {
+            // clear console since this can now be run multiple times in a row
+            Console.Clear();
 
             // if we're in debug mode we'll append a string to the end of the logText
             string sDebugAddendum = "";
@@ -84,12 +95,11 @@ namespace KillEmAll.NET
 
             // start log text
             DateTime startTime = DateTime.Now;
-            string logText = "Started on " + Environment.MachineName + " at " + startTime.ToString("MM/dd/yyyy h:mm:ss tt") + "...  (Running as " + userType + ")" + sDebugAddendum + "\n\n";
+            string logText = "Started on " + Environment.MachineName + " at " + startTime.ToString("MM/dd/yyyy h:mm:ss tt") + "...  (Running as " + _userType + ")" + sDebugAddendum + "\n\n";
 
+            Console.Write(logText);
             if (bDebugMode)
-                Console.Write(logText + "Press 'A' at any time to Abort Debug mode and terminate all processes.\n");
-            else
-                Console.Write(logText);
+                PrintDebugHelp();
 
             // call main functionality here
             try
@@ -99,7 +109,7 @@ namespace KillEmAll.NET
                 // append to log text
                 logText += foo.Log();
                 // write end msg
-                Console.WriteLine("\n" + endMsg);
+                Console.WriteLine("\n" + _endMsg);
             }
             catch (Exception ex)
             {
@@ -108,95 +118,114 @@ namespace KillEmAll.NET
             if (!bRunAuto)
                 pressAnyKeyToExit(logText); // passing logText so it can be saved if user selects
             else
-                if (bLogToFile) logTextToFile(logText); // log automatically
+                if (_bLogToFile) logTextToFile(logText); // log automatically
         }
 
         static bool pressAnyKeyToStart()
         {
             // returns true if 'debug mode' is desired.
-            bool bRet = false;
+            bool bEnableDebugMode = false;
             Console.WriteLine("WARNING:  ANY DATA NOT SAVED WILL BE LOST!  (Close this window to abort.)\n");
             Console.WriteLine("Press 'C' for KillEmAll.NET Configuration");
-            Console.WriteLine("Press 'D' for Debug Mode (prompt before each program termination)");
+            Console.WriteLine("Press 'D' for Debug Mode (prompt before each program termination)\n");
             Console.Write("Press any other key to start. . .");
         GetInput:
             ConsoleKeyInfo foo = Console.ReadKey();
-            if (foo.KeyChar.ToString().ToLower().Equals("c"))
+            switch (foo.Key)
             {
-                System.Windows.Forms.Form config = new ConfigUI();
-                config.ShowDialog();
-                goto GetInput;
+                case ConsoleKey.C:
+                    System.Windows.Forms.Form config = new ConfigUI();
+                    config.ShowDialog();
+                    goto GetInput;
+
+                case ConsoleKey.D:
+                    bEnableDebugMode = true;
+                    break;
             }
-            if (foo.KeyChar.ToString().ToLower().Equals("d"))
-                bRet = true;
             // always clear console after prompt
             Console.Clear();
-            return bRet;
+            return bEnableDebugMode;
         }
 
         static void pressAnyKeyToExit(string logText)
         {
-            bool showTextFileOnClose = false;
+            string savelogText = "Press 'L' to save results to KillEmAll_Log.txt\n";
+            string runAsAdminText = "Press 'A' to run KillEmAll.NET again (as Administrator)    \n";
+            string pressAnyKeyText = "\nPress any other key to exit. . .";
 
-            // if we're starting up and killing automatically without prompt, we need to know we can get to Config at the end...
-            string appendText = "";
-            if (IniRead("Startup", "AutoKill") == "1")
-                appendText = "Press 'C' for KillEmAll.NET Configuration\n";
+            // if administrator, empty this string so the option isn't printed
+            if (isRunningAsAdmin())
+                runAsAdminText = "";
 
-            Console.WriteLine("");
-            if (!isRunningAsAdmin())
-            {
-                // since we're not running as administrator, prompt user to run again as admin...
-                Console.Write("Press 'L' to save results to KillEmAll_Log.txt\n" + appendText + "Press 'A' to Run again as Administrator\nPress any other key to exit. . .");
-            GetResponse:
-                ConsoleKeyInfo foo = Console.ReadKey();
-                string key = foo.KeyChar.ToString().ToLower();
-                switch (key)
-                {
-                    case "a":
-                        // if function returns true, flag this bool = false so we don't pop up the text file when we're relaunching as admin
-                        if (launchSelfAsAdministrator())
-                            showTextFileOnClose = false;
-                        break;
-                    
-                    case "c":
-                        System.Windows.Forms.Form config = new ConfigUI();
-                        config.ShowDialog();
-                        goto GetResponse;
+            // construct the rest of the text
+            string runAndConfigText = "Press 'R' to run KillEmAll.NET again                      Press 'C' for KillEmAll.NET Configuration\n";
+            runAndConfigText += "Press 'D' to run KillEmAll.NET again (in Debug Mode)      \n";
 
-                    case "l":
-                        logTextToFile(logText);
-                        showTextFileOnClose = true;
-                        Console.Write(appendText + "Press 'A' to Run again as Administrator\nPress any other key to exit. . .");
-                        goto GetResponse;
-                }
-            }
-            else
-            {
-                // already running as administrator, prompt to exit only.
-                Console.Write("Press 'L' to save results to KillEmAll_Log.txt\n" + appendText + "Press any other key to exit. . .");
-            GetResponse2:
-                ConsoleKeyInfo foo = Console.ReadKey();
-                string key = foo.KeyChar.ToString().ToLower();
-                switch (key)
-                {
-                    case "c":
-                        System.Windows.Forms.Form config = new ConfigUI();
-                        config.ShowDialog();
-                        goto GetResponse2;
-
-                    case "l":
-                        logTextToFile(logText);
-                        showTextFileOnClose = true;
-                        break;
-                }
+            // if we're already flagged to show log on exit, we've been through this method before and specifically selected 'L' to save the log...
+            if (_showTextFileOnClose)
+            {        
+                // so automatically log everything else; pass a silent flag because we don't need to see that every time.
+                logTextToFile(logText, true);
+                // and clear this string so the 'L' option isn't shown below
+                savelogText = "";
             }
 
-            if (showTextFileOnClose)
+            // write a little screen distance
+            Console.WriteLine("\n");
+
+            // since we're not running as administrator, prompt user to run again as admin...
+            Console.Write(savelogText + runAndConfigText + runAsAdminText + pressAnyKeyText);
+        GetResponse:
+            ConsoleKeyInfo foo = Console.ReadKey();
+            switch (foo.Key)
+            {
+                case ConsoleKey.R:
+                    startKillEmAll();
+                    return;
+                case ConsoleKey.D:
+                    startKillEmAll(true);
+                    return;
+                case ConsoleKey.A:
+                    if (isRunningAsAdmin())
+                        goto GetResponse;
+                    // if function returns true, flag this bool = false so we don't pop up the text file when we're relaunching as admin
+                    if (launchSelfAsAdministrator())
+                        _showTextFileOnClose = false;                        
+                    break;
+                case ConsoleKey.C:
+                    System.Windows.Forms.Form config = new ConfigUI();
+                    config.ShowDialog();
+                    goto GetResponse;
+                case ConsoleKey.L:
+                    logTextToFile(logText);
+                    _showTextFileOnClose = true;
+                    Console.Write(runAndConfigText + runAsAdminText + pressAnyKeyText);
+                    goto GetResponse;
+            }
+
+            if (_showTextFileOnClose)
             {
                 string logFile = getLogFilePathAndName();
                 Process.Start("notepad.exe", logFile);
             }
+        }
+
+        public static void PrintDebugHelp()
+        {
+            string helpText = "Press 'C' at any time for KillEmAll.NET Configuration.\n";
+            helpText += "Press 'H' at any time to display this Help screen.\n";
+            helpText += "Press 'Q' at any time to Quit Debug mode.\n\n";
+
+            helpText += "These options are available for every file/process:\n";
+
+            // only print this bit if we aren't automatically showing info
+            if (Program.IniRead("DebugMode", "ShowFileInfo") != "1")
+                helpText += "Press 'I' at any time for Information on the file.\n";
+
+            helpText += "Press 'O' at any time to Open the file path (if detected) in Explorer.\n";
+            helpText += "Press 'S' at any time to Search the web.\n";
+
+            Console.WriteLine(helpText);
         }
 
         static bool launchSelfAsAdministrator()
@@ -228,7 +257,7 @@ namespace KillEmAll.NET
             return ret;
         }
 
-        static void logTextToFile(string logText)
+        static void logTextToFile(string logText, bool bSilent = false)
         {
             string logFile = getLogFilePathAndName();
             try
@@ -238,7 +267,8 @@ namespace KillEmAll.NET
                     writer.WriteLine(logText);
 
                     if (File.Exists(logFile))
-                        Console.WriteLine("\n--> Log Saved!\n");
+                        if (!bSilent)
+                            Console.WriteLine("\n\n--> Log Saved!\n");
                 }
             }
             catch (Exception)
@@ -281,7 +311,7 @@ namespace KillEmAll.NET
         public static string IniRead(string Section, string Key)
         {
             StringBuilder temp = new StringBuilder(255);
-            int i = GetPrivateProfileString(Section, Key, "", temp, 255, iniFile);
+            int i = GetPrivateProfileString(Section, Key, "", temp, 255, _iniFile);
             return temp.ToString();
         }
 
@@ -290,7 +320,7 @@ namespace KillEmAll.NET
 
         public static bool IniWrite(string Section, string Key, string Value)
         {
-            return WritePrivateProfileString(Section, Key, Value, iniFile);
+            return WritePrivateProfileString(Section, Key, Value, _iniFile);
         }
 
     }

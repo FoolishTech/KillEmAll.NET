@@ -49,6 +49,9 @@ namespace KillEmAll.NET
             if (Program.IniRead("Startup", "AutoKill") == "1")
                 chkStartupAutoKill.Checked = true;
 
+            if (Program.IniRead("DebugMode", "ShowFileInfo") == "1")
+                chkDebugAlwaysShowInfo.Checked = true;
+
             if (Program.IniRead("Search", "FileNameOnly") == "1")
                 chkSearchFileNameOnly.Checked = true;
 
@@ -86,6 +89,12 @@ namespace KillEmAll.NET
             else
                 value = "0";
             Program.IniWrite("Startup", "AutoKill", value);
+
+            if (chkDebugAlwaysShowInfo.Checked)
+                value = "1";
+            else
+                value = "0";
+            Program.IniWrite("DebugMode", "ShowFileInfo", value);
 
             if (chkSearchFileNameOnly.Checked)
                 value = "1";

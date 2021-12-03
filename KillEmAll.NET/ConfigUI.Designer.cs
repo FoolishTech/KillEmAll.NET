@@ -30,6 +30,7 @@ namespace KillEmAll.NET
         private void InitializeComponent()
         {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.chkStartupAutoKill = new System.Windows.Forms.CheckBox();
             this.chkStartupRunAsAdmin = new System.Windows.Forms.CheckBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.label2 = new System.Windows.Forms.Label();
@@ -38,9 +39,11 @@ namespace KillEmAll.NET
             this.txtSearchEngineURL = new System.Windows.Forms.TextBox();
             this.chkSearchFileNameOnly = new System.Windows.Forms.CheckBox();
             this.cmdSaveExit = new System.Windows.Forms.Button();
-            this.chkStartupAutoKill = new System.Windows.Forms.CheckBox();
+            this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.chkDebugAlwaysShowInfo = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
+            this.groupBox3.SuspendLayout();
             this.SuspendLayout();
             // 
             // groupBox1
@@ -53,6 +56,16 @@ namespace KillEmAll.NET
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Startup Behavior";
+            // 
+            // chkStartupAutoKill
+            // 
+            this.chkStartupAutoKill.AutoSize = true;
+            this.chkStartupAutoKill.Location = new System.Drawing.Point(18, 42);
+            this.chkStartupAutoKill.Name = "chkStartupAutoKill";
+            this.chkStartupAutoKill.Size = new System.Drawing.Size(276, 17);
+            this.chkStartupAutoKill.TabIndex = 1;
+            this.chkStartupAutoKill.Text = "Always terminate programs immediately before prompt";
+            this.chkStartupAutoKill.UseVisualStyleBackColor = true;
             // 
             // chkStartupRunAsAdmin
             // 
@@ -71,12 +84,12 @@ namespace KillEmAll.NET
             this.groupBox2.Controls.Add(this.comboSearchEngineName);
             this.groupBox2.Controls.Add(this.txtSearchEngineURL);
             this.groupBox2.Controls.Add(this.chkSearchFileNameOnly);
-            this.groupBox2.Location = new System.Drawing.Point(19, 98);
+            this.groupBox2.Location = new System.Drawing.Point(19, 157);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(382, 111);
             this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Web Search Configuration";
+            this.groupBox2.Text = "Search Configuration";
             // 
             // label2
             // 
@@ -127,7 +140,7 @@ namespace KillEmAll.NET
             // cmdSaveExit
             // 
             this.cmdSaveExit.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.cmdSaveExit.Location = new System.Drawing.Point(277, 215);
+            this.cmdSaveExit.Location = new System.Drawing.Point(277, 283);
             this.cmdSaveExit.Name = "cmdSaveExit";
             this.cmdSaveExit.Size = new System.Drawing.Size(124, 30);
             this.cmdSaveExit.TabIndex = 2;
@@ -135,21 +148,32 @@ namespace KillEmAll.NET
             this.cmdSaveExit.UseVisualStyleBackColor = true;
             this.cmdSaveExit.Click += new System.EventHandler(this.cmdSaveExit_Click);
             // 
-            // chkStartupAutoKill
+            // groupBox3
             // 
-            this.chkStartupAutoKill.AutoSize = true;
-            this.chkStartupAutoKill.Location = new System.Drawing.Point(18, 42);
-            this.chkStartupAutoKill.Name = "chkStartupAutoKill";
-            this.chkStartupAutoKill.Size = new System.Drawing.Size(276, 17);
-            this.chkStartupAutoKill.TabIndex = 1;
-            this.chkStartupAutoKill.Text = "Always terminate programs immediately before prompt";
-            this.chkStartupAutoKill.UseVisualStyleBackColor = true;
+            this.groupBox3.Controls.Add(this.chkDebugAlwaysShowInfo);
+            this.groupBox3.Location = new System.Drawing.Point(19, 96);
+            this.groupBox3.Name = "groupBox3";
+            this.groupBox3.Size = new System.Drawing.Size(382, 46);
+            this.groupBox3.TabIndex = 3;
+            this.groupBox3.TabStop = false;
+            this.groupBox3.Text = "Debug Mode Behavior";
+            // 
+            // chkDebugAlwaysShowInfo
+            // 
+            this.chkDebugAlwaysShowInfo.AutoSize = true;
+            this.chkDebugAlwaysShowInfo.Location = new System.Drawing.Point(19, 19);
+            this.chkDebugAlwaysShowInfo.Name = "chkDebugAlwaysShowInfo";
+            this.chkDebugAlwaysShowInfo.Size = new System.Drawing.Size(323, 17);
+            this.chkDebugAlwaysShowInfo.TabIndex = 0;
+            this.chkDebugAlwaysShowInfo.Text = "Always show extended file information (don\'t require pressing \'I\')";
+            this.chkDebugAlwaysShowInfo.UseVisualStyleBackColor = true;
             // 
             // ConfigUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(421, 254);
+            this.ClientSize = new System.Drawing.Size(421, 325);
+            this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.cmdSaveExit);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
@@ -164,6 +188,8 @@ namespace KillEmAll.NET
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
+            this.groupBox3.ResumeLayout(false);
+            this.groupBox3.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -180,5 +206,7 @@ namespace KillEmAll.NET
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.CheckBox chkStartupAutoKill;
+        private System.Windows.Forms.GroupBox groupBox3;
+        private System.Windows.Forms.CheckBox chkDebugAlwaysShowInfo;
     }
 }

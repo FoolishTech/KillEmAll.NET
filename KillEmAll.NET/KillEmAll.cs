@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 //using System.Linq;
 using System.Text;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace KillEmAll.NET
 {
@@ -13,15 +15,20 @@ namespace KillEmAll.NET
         private Dictionary<string, string> _internalFileNames = new Dictionary<string, string>();
         private Dictionary<string, string> _internalWindowsFileNames = new Dictionary<string, string>();
         private Dictionary<string, string> _internalWindowsFiles = new Dictionary<string, string>();
+        // added to track which processes were already selected to be terminated or skipped in debug mode, to skip prompting the user again
+        static Dictionary<string, string> _terminatedProcesses = new Dictionary<string, string>();
+        static Dictionary<string, string> _skippedProcesses = new Dictionary<string, string>();
         private string _winDir;
         private string _sys32;
         private string _sys64;
         private int _myPID;
         private int _myParentPID = 0;
         private bool _debugMode;
+        private bool _debugModeShowInfo;
+        private bool _skipAllAfterTerminatingDebugMode;
         private bool _isWinXP;
         private bool _searchFileNameOnly;
-        private string _searchEngineURL;
+        private string _searchEngineURL;        
 
         private StringBuilder sbLog = new StringBuilder();
         public string Log() => sbLog.ToString();
@@ -34,11 +41,20 @@ namespace KillEmAll.NET
                 // get new settings that are only used in debug mode anyway
                 getSettingsFromINI();
             }
+            else
+                _debugMode = false;
+
+            _internalFileNames.Clear();
+            _internalWindowsFileNames.Clear();
+            _internalWindowsFiles.Clear();
+            _terminatedProcesses.Clear();
+            _skippedProcesses.Clear();
+            sbLog.Clear();
 
             // this is reliable even when Environment.OSVersion is lying, because we only care if it is XP/2003 for this variable...
             _isWinXP = Environment.OSVersion.Version.ToString().Substring(0, 1).Equals("5");
 
-            _winDir = System.IO.Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.System)).ToString().ToLower() + "\\";
+            _winDir = Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.System)).ToString().ToLower() + "\\";
             _sys32 = _winDir + "system32\\";
             _sys64 = _winDir + "syswow64\\";
 
@@ -110,6 +126,12 @@ namespace KillEmAll.NET
             _searchEngineURL = Program.IniRead("Search", "URL");
             if (_searchEngineURL.Trim().Length < 1)
                 _searchEngineURL = "https://www.google.com/search?hl=en&q=";
+
+            // always show info in debug mode
+            if (Program.IniRead("DebugMode", "ShowFileInfo") == "1")
+                _debugModeShowInfo = true;
+            else
+                _debugModeShowInfo = false;
         }
 
         public void Start()
@@ -197,71 +219,283 @@ namespace KillEmAll.NET
             bool bSuccess = false;
             bool bKill = false;
             string sResult = "";
-            
+
             // use full path (only if we have one) for initial user display and log text, else use process name only.
             string sSubject = processName;
             if (fullPath.Contains("\\"))
                 sSubject = fullPath;
 
-            if (_debugMode)
+            // only if not flagged to skip everything 
+            if (!_skipAllAfterTerminatingDebugMode)
             {
-                Console.WriteLine("");
-                Console.Write($"Terminate process:  \"{sSubject}\"  [Y/n/w] (Yes/No/WebSearch)?");
-
-            GetUserInput:
-                // moved from before GetUserInput: because we may change settings mid-program now and this variable needs to be reinterpreted.
-                // determine search string based on config setting; default to processName when setting does not exist
-                string searchString = "";
-                if (_searchFileNameOnly)
-                    searchString = processName;
-                else
-                    searchString = sSubject;
-
-                // read key
-                ConsoleKeyInfo foo = Console.ReadKey();
-                Console.WriteLine("");
-                string key = foo.KeyChar.ToString().ToLower();
-                switch (key)
+                // only if we haven't skipped this process already
+                if (!_skippedProcesses.ContainsKey(sSubject))
                 {
-                    case "a":
-                        Console.WriteLine("\nAborting Debug Mode (Terminating all remaining processes). . .\n");
-                        _debugMode = false;
+                    // check to see if we've already terminated this process
+                    if (_terminatedProcesses.ContainsKey(sSubject))
+                    {
+                        // flag to kill and skip the rest
                         bKill = true;
-                        break;
-                    case "c":
-                        System.Windows.Forms.Form config = new ConfigUI();
-                        config.ShowDialog();
-                        // get potential settings changes from INI
-                        getSettingsFromINI();
-                        goto GetUserInput;
-                    case "g":
-                        webSearch(searchString);
-                        goto GetUserInput;
-                    case "w":
-                        webSearch(searchString);
-                        goto GetUserInput;
-                    case "n":
-                        Console.WriteLine($"Skipped \"{processName}\"");
-                        break;
-                    default:
-                        bKill = true;
-                        break;
+                    }
+                    else
+                    {
+                        // only if in debug mode
+                        if (_debugMode)
+                        {
+                            // use to prevent user from filling the screen with duplicate file info, so we don't have to rewrite the terminate prompt for clarity
+                            bool bAlreadyPrintedFileInfo = false;
+
+                        PrintMsg:
+                            Console.WriteLine("");
+                            Console.Write($"Terminate process:  \"{sSubject}\"  [Y/n] (Yes/No)?");
+
+                            // if configured to always show info
+                            if (_debugModeShowInfo)
+                            {
+                                // even though we test for this in the printFileInfo() method, when tested there it prints an error,
+                                // but here when this setting is enabled automatically, it shouldn't print that error, so don't even call the method...
+                                if (fullPath.Contains("\\"))
+                                {
+                                    // flag true to ensure file info is printed only once
+                                    bAlreadyPrintedFileInfo = true;
+                                    printFileInfo(fullPath, processName);
+                                }
+                            }
+
+                        GetUserInput:
+                            // moved from before GetUserInput: because we may change settings mid-program now and this variable needs to be reinterpreted.
+                            // determine search string based on config setting; default to processName when setting does not exist
+                            string searchString = "";
+                            if (_searchFileNameOnly)
+                                searchString = processName;
+                            else
+                                searchString = sSubject;
+
+                            // read key
+                            ConsoleKeyInfo foo = Console.ReadKey();
+                            Console.WriteLine("");
+                            switch (foo.Key)
+                            {
+                                case ConsoleKey.Q:
+                                    Console.Write("\nTerminate all remaining processes?  [Y/n]  (Yes/No)");
+                                    bool terminateAll = false;
+                                QuitPrompt:
+                                    ConsoleKeyInfo bar = Console.ReadKey();
+                                    switch (bar.Key)
+                                    {
+                                        case ConsoleKey.Enter:
+                                            terminateAll = true;
+                                            break;
+                                        case ConsoleKey.Y:
+                                            terminateAll = true;
+                                            break;
+                                        case ConsoleKey.N:
+                                            break;
+                                        case ConsoleKey.Escape:
+                                            break;
+                                        default:
+                                            goto QuitPrompt;
+                                    }
+                                    if (terminateAll)
+                                    {
+                                        Console.WriteLine("\nQuitting Debug Mode (Terminating all remaining processes). . .\n");
+                                        _debugMode = false;
+                                        bKill = true;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("\nQuitting Debug Mode (Skipping all remaining processes). . .\n");
+                                        _debugMode = false;
+                                        _skipAllAfterTerminatingDebugMode = true;
+                                    }
+                                    break;
+                                case ConsoleKey.C:
+                                    System.Windows.Forms.Form config = new ConfigUI();
+                                    config.ShowDialog();
+                                    // get potential settings changes from INI
+                                    getSettingsFromINI();
+                                    goto GetUserInput;
+                                case ConsoleKey.G:
+                                    webSearch(searchString);
+                                    goto GetUserInput;
+                                case ConsoleKey.W:
+                                    webSearch(searchString);
+                                    goto GetUserInput;
+                                case ConsoleKey.S:
+                                    webSearch(searchString);
+                                    goto GetUserInput;
+                                case ConsoleKey.I:
+                                    if (!bAlreadyPrintedFileInfo)
+                                    {
+                                        // flag true to ensure file info is printed only once
+                                        bAlreadyPrintedFileInfo = true;
+                                        printFileInfo(fullPath, processName);
+                                    }
+                                    goto GetUserInput;
+                                case ConsoleKey.O:
+                                    openInExplorer(fullPath);
+                                    goto GetUserInput;
+                                case ConsoleKey.H:
+                                    Console.Clear();
+                                    Console.WriteLine("");
+                                    Program.PrintDebugHelp();
+                                    // in case user wants to see that info again
+                                    if (!_debugModeShowInfo)
+                                        bAlreadyPrintedFileInfo = false;
+                                    goto PrintMsg;
+                                case ConsoleKey.N:
+                                    // add to skipped files collection if user specifically skips this file
+                                    if (!_skippedProcesses.ContainsKey(sSubject))
+                                        _skippedProcesses.Add(sSubject, "");
+                                    break;
+                                case ConsoleKey.Escape:
+                                    break;
+                                case ConsoleKey.Y:
+                                    bKill = true;
+                                    break;
+                                case ConsoleKey.Enter:
+                                    bKill = true;
+                                    break;
+                                default:
+                                    goto GetUserInput;
+                            }
+                        }
+                        else
+                        {
+                            // finally we land here if we aren't in debug mode
+                            bKill = true;
+                        }
+                    }
                 }
-            }
-            else
-            {
-                bKill = true;
             }
 
             if (bKill)
             {
                 bSuccess = killProcessByPID(PID);
                 if (bSuccess)
+                {
+                    // add to successfully terminated processes list
+                    if (!_terminatedProcesses.ContainsKey(sSubject))
+                        _terminatedProcesses.Add(sSubject, "");
                     sResult = "True ";  // pad an extra space to match length of 'FALSE' for text formatting on screen/in log file
+                }
                 else
                     sResult = "FALSE";  // set text to uppercase to easily recognize a failure
                 sbLog.AppendLine($"Terminated={sResult} \"{sSubject}\"");
                 Console.WriteLine($"Terminated={sResult} \"{processName}\"");
+            }
+            else
+            {
+                Console.WriteLine($"Skipped \"{processName}\"");
+            }
+        }
+
+        void printFileInfo(string fullPath, string processName)
+        {
+            // ensure we were passed a path
+            if (!fullPath.Contains("\\"))
+            {
+                Console.WriteLine("\n  [No file path; cannot query file information!]");
+                return;
+            }
+
+            // first try getting the file date, but don't print it yet.
+            string fileDate = "";
+            try
+            {
+                fileDate = File.GetLastWriteTime(fullPath).ToString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nException: {0}\n", ex.Message);
+
+                // if we can't get file date, I doubt we're going to get anything else out of the rest of this method so just exit
+                return;
+            }
+
+            // follow up with file version info strings
+            try
+            {
+                FileVersionInfo fileInfo = FileVersionInfo.GetVersionInfo(fullPath);
+
+                Console.WriteLine("\n");
+
+                // check the current vs. the original filename
+                if (fileInfo.OriginalFilename.ToLower() != processName.ToLower())
+                    Console.WriteLine("  Original File = " + fileInfo.OriginalFilename + "  (The file has been renamed from it's compiled value.)");
+
+                if (fileDate.Length > 0)
+                    Console.WriteLine("  File Date     = " + fileDate);
+
+                if (fileInfo.FileVersion.Length > 0)
+                    Console.WriteLine("  File Version  = " + fileInfo.FileVersion);
+
+                if (fileInfo.ProductName.Length > 0)
+                    Console.WriteLine("  Product Name  = " + fileInfo.ProductName);
+
+                if (fileInfo.InternalName.Length > 0)
+                    Console.WriteLine("  Internal Name = " + fileInfo.InternalName);
+
+                if (fileInfo.FileDescription.Length > 0)
+                    Console.WriteLine("  Description   = " + fileInfo.FileDescription);
+
+                if (fileInfo.Comments.Length > 0)
+                    Console.WriteLine("  Comments      = " + fileInfo.Comments);
+
+                if (fileInfo.CompanyName.Length > 0)
+                    Console.WriteLine("  Company       = " + fileInfo.CompanyName);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nException: {0}\n", ex.Message);
+
+                // if we can't get this info, again I don't think we're gonna get file hashes, so exit
+                return;
+            }
+
+            // file hashes
+            try
+            {
+                byte[] myFileData = File.ReadAllBytes(fullPath);
+                Console.WriteLine("  MD5 HASH      = " + byteArrayToString(MD5.Create().ComputeHash(myFileData)));
+                Console.WriteLine("  SHA256 HASH   = " + byteArrayToString(SHA256.Create().ComputeHash(myFileData)));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nException: {0}\n", ex.Message);
+                return;
+            }
+
+            Console.WriteLine("");
+        }
+
+        static string byteArrayToString(byte[] arrInput)
+        {
+            int i;
+            StringBuilder sOutput = new StringBuilder(arrInput.Length);
+            for (i = 0; i < arrInput.Length; i++)
+            {
+                sOutput.Append(arrInput[i].ToString("X2"));
+            }
+            return sOutput.ToString();
+        }
+
+        static void openInExplorer(string fullPath)
+        {
+            if (!fullPath.Contains("\\"))
+            {
+                Console.WriteLine("\n  [No file path to open!]");
+                return;
+            }
+
+            try
+            {
+                Process.Start("explorer.exe", "/select," + fullPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception: {0}", ex.Message);
             }
         }
 
@@ -312,6 +546,12 @@ namespace KillEmAll.NET
                     // (full value will be always wrapped in quotes at the end of this procedure.)
                     sRet = "Users\\\" \"" + sRet;
                 }
+            }
+            else
+            {
+                // if a UNC path, strip it down to the filename only, since personalized network paths probably don't mean much in web searches...
+                if (sRet.StartsWith(@"\\"))
+                    sRet = StripString(sRet, "\\", StripStringReturnType.ReturnAfterLastDelimiter);
             }
             // wrap final return in quotes
             return "\"" + sRet + "\"";
