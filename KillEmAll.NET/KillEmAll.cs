@@ -18,6 +18,8 @@ namespace KillEmAll.NET
         // added to track which processes were already selected to be terminated or skipped in debug mode, to skip prompting the user again
         static Dictionary<string, string> _terminatedProcesses = new Dictionary<string, string>();
         static Dictionary<string, string> _skippedProcesses = new Dictionary<string, string>();
+        // added for allow list
+        private Dictionary<string, string> _allowList = new Dictionary<string, string>();
         private string _winDir;
         private string _sys32;
         private string _sys64;
@@ -28,7 +30,9 @@ namespace KillEmAll.NET
         private bool _skipAllAfterTerminatingDebugMode;
         private bool _isWinXP;
         private bool _searchFileNameOnly;
-        private string _searchEngineURL;        
+        private string _searchEngineURL;
+        private string _file_d7xEXE = "";
+        public string File_AllowList = "";
 
         private StringBuilder sbLog = new StringBuilder();
         public string Log() => sbLog.ToString();
@@ -44,6 +48,7 @@ namespace KillEmAll.NET
             else
                 _debugMode = false;
 
+            _allowList.Clear();
             _internalFileNames.Clear();
             _internalWindowsFileNames.Clear();
             _internalWindowsFiles.Clear();
@@ -112,6 +117,15 @@ namespace KillEmAll.NET
             // included in the filename, regardless of what path it is in!
             _internalPartialFileNameArray = new string[] { "d7x v", "cryptoprevent", "teamviewer", "screenconnect", "lmiguardian", "lmi_", "logmein", 
                                                            "callingcard", "unattended" };
+
+            // we need to determine if we have the d7x EXE before creating an allow list dictionary
+            _file_d7xEXE = Program.RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "AppEXE");
+            if (_file_d7xEXE.Length > 0)
+                if (!File.Exists(_file_d7xEXE))
+                    _file_d7xEXE = "";   // empty string if file doesn't exist; we'll just test for this string later
+
+            // finally, create our dictionary for any external allow list present
+            createAllowListDictionary();
         }
 
         private void getSettingsFromINI()
@@ -132,6 +146,73 @@ namespace KillEmAll.NET
                 _debugModeShowInfo = true;
             else
                 _debugModeShowInfo = false;
+        }
+
+        private string[] fileToStringArray(string path)
+        {
+            try
+            {
+                List<string> fileLines = new List<string>();
+                using (StreamReader reader = new StreamReader(path))
+                {
+                    int i = 0;
+                    string line;
+
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        fileLines.Add(line);
+                        i++;
+                    }
+                }
+                return fileLines.ToArray();
+            }
+            catch 
+            {
+                return null;
+            }
+        }
+
+        private void createAllowListDictionary()
+        {
+            string defFile;
+            if (_file_d7xEXE.Length > 0)
+            {
+                // get d7x path
+                defFile = Path.GetDirectoryName(_file_d7xEXE) + "\\d7x Resources\\Defs\\User\\Process_Whitelist.txt";
+            }
+            else
+            {
+                // get app path
+                var proc = Process.GetCurrentProcess();
+                defFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Allowed.txt";
+            }
+
+            string[] temp;
+            if (File.Exists(defFile))
+            {
+                temp = fileToStringArray(defFile);
+                File_AllowList = defFile;
+            }
+            else
+            {
+                return;
+            }
+            if (temp != null || temp.Length > 0)
+            {
+                foreach (string processName in temp)
+                {
+                    if (processName.Trim().Length > 0)
+                    {
+                        try
+                        {
+                            _allowList.Add(processName.ToLower(), "");
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+            }
         }
 
         public void Start()
@@ -186,22 +267,26 @@ namespace KillEmAll.NET
                                         // if no match, proceed
                                         if (!bPartialMatch)
                                         {
-                                            // get the full path AFTER the checks above, because getPathFromPID can throw an exception trying to OpenProcess on PID=0, etc.
-                                            string fullpath = getPathFromPID(PID).ToLower();
+                                            // check the dictionary we created with a whitelist
+                                            if (!_allowList.ContainsKey(filename.ToLower()))
+                                            {
+                                                // get the full path AFTER the checks above, because getPathFromPID can throw an exception trying to OpenProcess on PID=0, etc.
+                                                string fullpath = getPathFromPID(PID).ToLower();
 
-                                            if (fullpath.Contains("\\"))
-                                            {
-                                                // we have a full path, so check against full path whitelist
-                                                if (!_internalWindowsFiles.ContainsKey(fullpath))
-                                                    killProcess(PID, filename, fullpath);
-                                            }
-                                            else
-                                            {
-                                                // on failure to identify a full path, work with the filenames only.
-                                                // many Windows files and possibly others will fail path identification when this app is running at user level;
-                                                // chances are if we can't identify the path we probably can't terminate the app either, but no harm in trying anyway...
-                                                if (!_internalWindowsFileNames.ContainsKey(filename))
-                                                    killProcess(PID, filename);
+                                                if (fullpath.Contains("\\"))
+                                                {
+                                                    // we have a full path, so check against full path whitelist
+                                                    if (!_internalWindowsFiles.ContainsKey(fullpath))
+                                                        killProcess(PID, filename, fullpath);
+                                                }
+                                                else
+                                                {
+                                                    // on failure to identify a full path, work with the filenames only.
+                                                    // many Windows files and possibly others will fail path identification when this app is running at user level;
+                                                    // chances are if we can't identify the path we probably can't terminate the app either, but no harm in trying anyway...
+                                                    if (!_internalWindowsFileNames.ContainsKey(filename))
+                                                        killProcess(PID, filename);
+                                                }
                                             }
                                         }
                                     }
@@ -299,15 +384,17 @@ namespace KillEmAll.NET
                                     if (terminateAll)
                                     {
                                         Console.WriteLine("\nQuitting Debug Mode (Terminating all remaining processes). . .\n");
-                                        _debugMode = false;
-                                        bKill = true;
+                                        // ensure we kill the currently selected process
+                                        bKill = true;   
                                     }
                                     else
                                     {
                                         Console.WriteLine("\nQuitting Debug Mode (Skipping all remaining processes). . .\n");
-                                        _debugMode = false;
-                                        _skipAllAfterTerminatingDebugMode = true;
+                                        // ensure we skip all remaining processes
+                                        _skipAllAfterTerminatingDebugMode = true;   
                                     }
+                                    // disable Debug mode for future loops
+                                    _debugMode = false;
                                     break;
                                 case ConsoleKey.C:
                                     System.Windows.Forms.Form config = new ConfigUI();
@@ -338,11 +425,27 @@ namespace KillEmAll.NET
                                 case ConsoleKey.H:
                                     Console.Clear();
                                     Console.WriteLine("");
-                                    Program.PrintDebugHelp();
+                                    if (_file_d7xEXE.Length > 0)
+                                        Program.PrintDebugHelp(true);
+                                    else
+                                        Program.PrintDebugHelp(false);
                                     // in case user wants to see that info again
                                     if (!_debugModeShowInfo)
                                         bAlreadyPrintedFileInfo = false;
                                     goto PrintMsg;
+                                case ConsoleKey.E:
+                                    if (_file_d7xEXE.Length > 0)
+                                    {
+                                        if (fullPath.Contains("\\"))
+                                            launchd7x("/et=" + fullPath);
+                                        else
+                                            Console.WriteLine("\n  [No file path; cannot send file information to d7x!]");
+                                    }
+                                    goto GetUserInput;
+                                case ConsoleKey.R:
+                                    if (_file_d7xEXE.Length > 0)
+                                        launchd7x("/regsearch=" + processName);
+                                    goto GetUserInput;
                                 case ConsoleKey.N:
                                     // add to skipped files collection if user specifically skips this file
                                     if (!_skippedProcesses.ContainsKey(sSubject))
@@ -405,12 +508,8 @@ namespace KillEmAll.NET
             {
                 fileDate = File.GetLastWriteTime(fullPath).ToString();
             }
-            catch (Exception ex)
+            catch 
             {
-                Console.WriteLine("\nException: {0}\n", ex.Message);
-
-                // if we can't get file date, I doubt we're going to get anything else out of the rest of this method so just exit
-                return;
             }
 
             // follow up with file version info strings
@@ -446,12 +545,8 @@ namespace KillEmAll.NET
                     Console.WriteLine("  Company       = " + fileInfo.CompanyName);
 
             }
-            catch (Exception ex)
+            catch 
             {
-                Console.WriteLine("\nException: {0}\n", ex.Message);
-
-                // if we can't get this info, again I don't think we're gonna get file hashes, so exit
-                return;
             }
 
             // file hashes
@@ -461,10 +556,8 @@ namespace KillEmAll.NET
                 Console.WriteLine("  MD5 HASH      = " + byteArrayToString(MD5.Create().ComputeHash(myFileData)));
                 Console.WriteLine("  SHA256 HASH   = " + byteArrayToString(SHA256.Create().ComputeHash(myFileData)));
             }
-            catch (Exception ex)
+            catch 
             {
-                Console.WriteLine("\nException: {0}\n", ex.Message);
-                return;
             }
 
             Console.WriteLine("");
@@ -647,6 +740,37 @@ namespace KillEmAll.NET
             }
             return bRet;
         }
+
+        void launchd7x(string args)
+        {
+            const int ERROR_CANCELLED = 1223;
+            var p = new Process();
+            p.StartInfo.FileName = _file_d7xEXE;
+            p.StartInfo.Arguments = args;
+            if (!isRunningAsAdmin())
+            {
+                p.StartInfo.UseShellExecute = true;
+                p.StartInfo.Verb = "runas";
+            }
+        StartProcess:
+            try
+            {
+                p.Start();
+            }
+            catch (System.ComponentModel.Win32Exception ex)
+            {
+                if (ex.NativeErrorCode == ERROR_CANCELLED)
+                {
+                    // user cancelled the UAC prompt?!  give 'em another chance...
+                    Console.Clear();
+                    Console.WriteLine("\nYou must click 'YES' on the following prompt to run as Administrator\n\nPress any key to try again, or close this window to exit. . .");
+                    Console.ReadKey();
+                    goto StartProcess;
+                }
+            }
+        }
+
+        bool isRunningAsAdmin() => System.Security.Principal.WindowsIdentity.GetCurrent().Owner.IsWellKnown(System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid);
 
         string getPathFromPID(int PID)
         {

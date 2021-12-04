@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Win32;
 
 namespace KillEmAll.NET
 {
@@ -13,6 +14,8 @@ namespace KillEmAll.NET
         static string _endMsg = "KillEmAll Completed!";
         static bool _bLogToFile = false;
         static bool _showTextFileOnClose = false;
+        static string _file_d7xEXE = "";
+        static string _file_AllowList = "";
         static void Main(string[] args)
         {
             bool bDebugMode = false;
@@ -78,7 +81,7 @@ namespace KillEmAll.NET
             if (!bAutoStart)
                 if (!bDebugMode)
                         bDebugMode = pressAnyKeyToStart();
-
+            
             // moved the rest to a new method so we can repeat KillEmAll at the end if desired
             startKillEmAll(bDebugMode, bRunAuto);
         }
@@ -87,6 +90,14 @@ namespace KillEmAll.NET
         {
             // clear console since this can now be run multiple times in a row
             Console.Clear();
+
+            // determine if we have an active d7x session
+            _file_d7xEXE = RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "AppEXE");
+            bool bShowd7xOptions = false;
+            // set d7x EXE if exist
+            if (_file_d7xEXE.Length > 0)
+                if (File.Exists(_file_d7xEXE))
+                    bShowd7xOptions = true;
 
             // if we're in debug mode we'll append a string to the end of the logText
             string sDebugAddendum = "";
@@ -99,15 +110,22 @@ namespace KillEmAll.NET
 
             Console.Write(logText);
             if (bDebugMode)
-                PrintDebugHelp();
-
+                PrintDebugHelp(bShowd7xOptions);
+            
             // call main functionality here
             try
             {
                 KillEmAll foo = new KillEmAll(bDebugMode);
+                
+                // start terminating processes
                 foo.Start();
+
                 // append to log text
                 logText += foo.Log();
+
+                // get info from class for 'I' press
+                _file_AllowList = foo.File_AllowList;
+
                 // write end msg
                 Console.WriteLine("\n" + _endMsg);
             }
@@ -125,6 +143,7 @@ namespace KillEmAll.NET
         {
             // returns true if 'debug mode' is desired.
             bool bEnableDebugMode = false;
+        PrintMsg:
             Console.WriteLine("WARNING:  ANY DATA NOT SAVED WILL BE LOST!  (Close this window to abort.)\n");
             Console.WriteLine("Press 'C' for KillEmAll.NET Configuration");
             Console.WriteLine("Press 'D' for Debug Mode (prompt before each program termination)\n");
@@ -137,10 +156,15 @@ namespace KillEmAll.NET
                     System.Windows.Forms.Form config = new ConfigUI();
                     config.ShowDialog();
                     goto GetInput;
-
                 case ConsoleKey.D:
                     bEnableDebugMode = true;
                     break;
+                case ConsoleKey.I:
+                    Console.Clear();
+                    Console.WriteLine("\nConfig File = " + _iniFile);
+                    Console.WriteLine("Log File    = " + getLogFilePathAndName());
+                    Console.WriteLine("");
+                    goto PrintMsg;
             }
             // always clear console after prompt
             Console.Clear();
@@ -170,6 +194,7 @@ namespace KillEmAll.NET
                 savelogText = "";
             }
 
+        PrintMsg:
             // write a little screen distance
             Console.WriteLine("\n");
 
@@ -201,6 +226,13 @@ namespace KillEmAll.NET
                     _showTextFileOnClose = true;
                     Console.Write(runAndConfigText + runAsAdminText + pressAnyKeyText);
                     goto GetResponse;
+                case ConsoleKey.I:
+                    Console.Clear();
+                    Console.WriteLine("\nConfig File = " + _iniFile);
+                    Console.WriteLine("Allow List  = " + _file_AllowList);
+                    Console.WriteLine("Log File    = " + getLogFilePathAndName());
+                    Console.WriteLine("d7x EXE     = " + _file_d7xEXE);
+                    goto PrintMsg;
             }
 
             if (_showTextFileOnClose)
@@ -210,7 +242,7 @@ namespace KillEmAll.NET
             }
         }
 
-        public static void PrintDebugHelp()
+        public static void PrintDebugHelp(bool bShowd7xOptions)
         {
             string helpText = "Press 'C' at any time for KillEmAll.NET Configuration.\n";
             helpText += "Press 'H' at any time to display this Help screen.\n";
@@ -224,6 +256,13 @@ namespace KillEmAll.NET
 
             helpText += "Press 'O' at any time to Open the file path (if detected) in Explorer.\n";
             helpText += "Press 'S' at any time to Search the web.\n";
+
+            if (bShowd7xOptions)
+            {
+                helpText += "\nAn active d7x Session was found!  Additional options are available:\n";
+                helpText += "Press 'E' at any time to Examine the file with d7x.\n";
+                helpText += "Press 'R' at any time to start a Registry search with d7x.\n";
+            }
 
             Console.WriteLine(helpText);
         }
@@ -279,9 +318,13 @@ namespace KillEmAll.NET
 
         static string getLogFilePathAndName()
         {
-            var proc = Process.GetCurrentProcess();
-            string logFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Log.txt";
-            return logFile;
+            string logPath = RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "ReportsDir");
+            if ((logPath.Trim().Length < 1) || (!Directory.Exists(logPath)))
+            {
+                var proc = Process.GetCurrentProcess();
+                logPath = Path.GetDirectoryName(proc.MainModule.FileName);
+            }
+            return logPath + "\\KillEmAll_Log.txt";
         }
 
         static bool isRunningAsAdmin() => System.Security.Principal.WindowsIdentity.GetCurrent().Owner.IsWellKnown(System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid);
@@ -321,6 +364,47 @@ namespace KillEmAll.NET
         public static bool IniWrite(string Section, string Key, string Value)
         {
             return WritePrivateProfileString(Section, Key, Value, _iniFile);
+        }
+
+
+        public static string RegReadValueHKLM(string regPath, string valueName)
+        {
+            RegistryKey regKey = null;
+            string ret = "";
+            RegistryHive theHive = RegistryHive.LocalMachine;
+            RegistryView theView = RegistryView.Registry64;
+
+            try
+            {
+                regKey = RegistryKey.OpenBaseKey(theHive, theView);
+            }
+            catch
+            {
+                return ret;
+            }
+
+            try
+            {
+                regKey = regKey.OpenSubKey(regPath);
+            }
+            catch
+            {
+                return ret;
+            }
+
+            if (regKey != null)
+            {
+                try
+                {
+                    ret = regKey.GetValue(valueName).ToString();
+                    regKey.Close();
+                }
+                catch
+                {
+                    regKey.Close();
+                }
+            }
+            return ret;
         }
 
     }
