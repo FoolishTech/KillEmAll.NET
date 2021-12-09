@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Security.Cryptography;
+//using System.Security.Cryptography.X509Certificates;
 
 namespace KillEmAll.NET
 {
@@ -32,6 +33,7 @@ namespace KillEmAll.NET
         private bool _searchFileNameOnly;
         private string _searchEngineURL;
         private string _file_d7xEXE = "";
+        private string _path_d7x3pt = "";
         public string File_AllowList = "";
 
         private StringBuilder sbLog = new StringBuilder();
@@ -124,7 +126,12 @@ namespace KillEmAll.NET
                 if (!File.Exists(_file_d7xEXE))
                     _file_d7xEXE = "";   // empty string if file doesn't exist; we'll just test for this string later
 
-            // finally, create our dictionary for any external allow list present
+            _path_d7x3pt = Program.RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "3ptDir");
+            if (_path_d7x3pt.Length > 0)
+                if (!Directory.Exists(_path_d7x3pt))
+                    _path_d7x3pt = "";
+
+                // finally, create our dictionary for any external allow list present
             createAllowListDictionary();
         }
 
@@ -271,13 +278,17 @@ namespace KillEmAll.NET
                                             if (!_allowList.ContainsKey(filename.ToLower()))
                                             {
                                                 // get the full path AFTER the checks above, because getPathFromPID can throw an exception trying to OpenProcess on PID=0, etc.
-                                                string fullpath = getPathFromPID(PID).ToLower();
+                                                string fullPath = getPathFromPID(PID).ToLower();
 
-                                                if (fullpath.Contains("\\"))
+                                                if (fullPath.Contains("\\"))
                                                 {
-                                                    // we have a full path, so check against full path whitelist
-                                                    if (!_internalWindowsFiles.ContainsKey(fullpath))
-                                                        killProcess(PID, filename, fullpath);
+                                                    // check d7x 3rd party tools path and ignore anything in there
+                                                    if (!in3ptDir(fullPath))
+                                                    {
+                                                        // we have a full path, so check against full path whitelist
+                                                        if (!_internalWindowsFiles.ContainsKey(fullPath))
+                                                            killProcess(PID, filename, fullPath);
+                                                    }
                                                 }
                                                 else
                                                 {
@@ -297,6 +308,12 @@ namespace KillEmAll.NET
                 }
                 while (Process32NextW(HANLDE_Processes, ref p32Iw));
             }
+        }
+
+        bool in3ptDir(string fullPath)
+        {
+            if (_path_d7x3pt.Length < 1) return false;
+            return (fullPath.ToLower().Contains(_path_d7x3pt.ToLower()));
         }
 
         void killProcess(int PID, string processName, string fullPath = "")
@@ -422,6 +439,9 @@ namespace KillEmAll.NET
                                 case ConsoleKey.O:
                                     openInExplorer(fullPath);
                                     goto GetUserInput;
+                                case ConsoleKey.P:
+                                    openInCommandPrompt(fullPath);
+                                    goto GetUserInput;
                                 case ConsoleKey.H:
                                     Console.Clear();
                                     Console.WriteLine("");
@@ -502,50 +522,55 @@ namespace KillEmAll.NET
                 return;
             }
 
-            // first try getting the file date, but don't print it yet.
-            string fileDate = "";
-            try
-            {
-                fileDate = File.GetLastWriteTime(fullPath).ToString();
-            }
-            catch 
-            {
-            }
+            // put some space between the prompt and the info
+            Console.WriteLine("\n");
 
-            // follow up with file version info strings
+            // is file hidden
+            if (isHidden(fullPath))
+                Console.WriteLine("  File is Hidden = TRUE");
+
+            // file version info strings
             try
             {
                 FileVersionInfo fileInfo = FileVersionInfo.GetVersionInfo(fullPath);
 
-                Console.WriteLine("\n");
-
                 // check the current vs. the original filename
                 if (fileInfo.OriginalFilename.ToLower() != processName.ToLower())
-                    Console.WriteLine("  Original File = " + fileInfo.OriginalFilename + "  (The file has been renamed from it's compiled value.)");
+                    if (fileInfo.OriginalFilename.ToLower() != processName.ToLower() + ".mui")
+                        Console.WriteLine("  Original File  = " + fileInfo.OriginalFilename + "  (The file has been renamed from it's compiled value.)");
 
-                if (fileDate.Length > 0)
-                    Console.WriteLine("  File Date     = " + fileDate);
-
-                if (fileInfo.FileVersion.Length > 0)
-                    Console.WriteLine("  File Version  = " + fileInfo.FileVersion);
-
-                if (fileInfo.ProductName.Length > 0)
-                    Console.WriteLine("  Product Name  = " + fileInfo.ProductName);
-
+                // if we have an internal name, only show it if it differs from the filename
                 if (fileInfo.InternalName.Length > 0)
-                    Console.WriteLine("  Internal Name = " + fileInfo.InternalName);
+                    if (processName.ToLower() != fileInfo.InternalName.ToLower())
+                        Console.WriteLine("  Internal Name  = " + fileInfo.InternalName);
 
                 if (fileInfo.FileDescription.Length > 0)
-                    Console.WriteLine("  Description   = " + fileInfo.FileDescription);
+                    Console.WriteLine("  Description    = " + fileInfo.FileDescription);
 
                 if (fileInfo.Comments.Length > 0)
-                    Console.WriteLine("  Comments      = " + fileInfo.Comments);
+                    Console.WriteLine("  Comments       = " + fileInfo.Comments);
+
+                if (fileInfo.ProductName.Length > 0)
+                    Console.WriteLine("  Product Name   = " + fileInfo.ProductName);
 
                 if (fileInfo.CompanyName.Length > 0)
-                    Console.WriteLine("  Company       = " + fileInfo.CompanyName);
+                    Console.WriteLine("  Company        = " + fileInfo.CompanyName);
 
+                if (fileInfo.FileVersion.Length > 0)
+                    Console.WriteLine("  File Version   = " + fileInfo.FileVersion);
             }
             catch 
+            {
+            }
+
+            // file date 
+            try
+            {
+                string fileDate = File.GetLastWriteTime(fullPath).ToString();
+                if (fileDate.Length > 0)
+                    Console.WriteLine("  File Date      = " + fileDate);
+            }
+            catch
             {
             }
 
@@ -553,8 +578,8 @@ namespace KillEmAll.NET
             try
             {
                 byte[] myFileData = File.ReadAllBytes(fullPath);
-                Console.WriteLine("  MD5 HASH      = " + byteArrayToString(MD5.Create().ComputeHash(myFileData)));
-                Console.WriteLine("  SHA256 HASH   = " + byteArrayToString(SHA256.Create().ComputeHash(myFileData)));
+                Console.WriteLine("  MD5 HASH       = " + byteArrayToString(MD5.Create().ComputeHash(myFileData)));
+                Console.WriteLine("  SHA256 HASH    = " + byteArrayToString(SHA256.Create().ComputeHash(myFileData)));
             }
             catch 
             {
@@ -563,7 +588,7 @@ namespace KillEmAll.NET
             Console.WriteLine("");
         }
 
-        static string byteArrayToString(byte[] arrInput)
+        string byteArrayToString(byte[] arrInput)
         {
             int i;
             StringBuilder sOutput = new StringBuilder(arrInput.Length);
@@ -574,7 +599,21 @@ namespace KillEmAll.NET
             return sOutput.ToString();
         }
 
-        static void openInExplorer(string fullPath)
+        bool isHidden(string path)
+        {
+            bool ret = false;
+            try
+            {
+                FileAttributes attr = File.GetAttributes(path);
+                ret = ((attr & FileAttributes.Hidden) == FileAttributes.Hidden);
+            }
+            catch
+            {
+            }
+            return ret;
+        }
+
+        void openInExplorer(string fullPath)
         {
             if (!fullPath.Contains("\\"))
             {
@@ -587,6 +626,37 @@ namespace KillEmAll.NET
                 Process.Start("explorer.exe", "/select," + fullPath);
             }
             catch (Exception ex)
+            {
+                Console.WriteLine("Exception: {0}", ex.Message);
+            }
+        }
+
+        void openInCommandPrompt(string fullPath)
+        {
+            if (!fullPath.Contains("\\"))
+            {
+                Console.WriteLine("\n  [No file path to open!]");
+                return;
+            }
+
+            string pathOnly = Path.GetDirectoryName(fullPath);
+
+            var p = new Process();
+            p.StartInfo.FileName = "cmd.exe";
+            p.StartInfo.Arguments = "/k prompt=[KillEmAll.NET] $p$g&pushd \"" + pathOnly + "\"&title KillEmAll.NET v" + Process.GetCurrentProcess().MainModule.FileVersionInfo.ProductVersion + "&cls";
+
+            // always run as administrator, because a command prompt as a standard user is practically worthless.  
+            if (!isRunningAsAdmin())
+            {
+                p.StartInfo.UseShellExecute = true;
+                p.StartInfo.Verb = "runas";
+            }
+
+            try
+            {
+                p.Start();
+            }
+            catch (System.ComponentModel.Win32Exception ex)
             {
                 Console.WriteLine("Exception: {0}", ex.Message);
             }

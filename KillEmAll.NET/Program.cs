@@ -16,6 +16,7 @@ namespace KillEmAll.NET
         static bool _showTextFileOnClose = false;
         static string _file_d7xEXE = "";
         static string _file_AllowList = "";
+
         static void Main(string[] args)
         {
             bool bDebugMode = false;
@@ -145,13 +146,29 @@ namespace KillEmAll.NET
             bool bEnableDebugMode = false;
         PrintMsg:
             Console.WriteLine("WARNING:  ANY DATA NOT SAVED WILL BE LOST!  (Close this window to abort.)\n");
-            Console.WriteLine("Press 'C' for KillEmAll.NET Configuration");
-            Console.WriteLine("Press 'D' for Debug Mode (prompt before each program termination)\n");
-            Console.Write("Press any other key to start. . .");
+            if (Console.WindowWidth < 120)
+            {
+                Console.WriteLine("Press 'C' for KillEmAll.NET Configuration");
+                Console.WriteLine("Press 'D' to run KillEmAll.NET (in Debug Mode)");
+            }
+            else
+            {
+                Console.WriteLine("Press 'D' to run KillEmAll.NET (in Debug Mode)       Press 'C' for KillEmAll.NET Configuration");
+            }
+            if (!isRunningAsAdmin())
+                Console.WriteLine("Press 'A' to run KillEmAll.NET (as Administrator)");
+            Console.Write("\nPress any other key to start. . .");
         GetInput:
             ConsoleKeyInfo foo = Console.ReadKey();
             switch (foo.Key)
             {
+                case ConsoleKey.A:
+                    if (isRunningAsAdmin())
+                        goto GetInput;
+                    // if function returns true, be sure to end execution of this instance since we're relaunching as admin
+                    if (launchSelfAsAdministrator())
+                        Environment.Exit(0);
+                    break;
                 case ConsoleKey.C:
                     System.Windows.Forms.Form config = new ConfigUI();
                     config.ShowDialog();
@@ -182,8 +199,18 @@ namespace KillEmAll.NET
                 runAsAdminText = "";
 
             // construct the rest of the text
-            string runAndConfigText = "Press 'R' to run KillEmAll.NET again                      Press 'C' for KillEmAll.NET Configuration\n";
-            runAndConfigText += "Press 'D' to run KillEmAll.NET again (in Debug Mode)      \n";
+            string runAndConfigText;
+            if (Console.WindowWidth  < 120)
+            {
+                runAndConfigText = "Press 'R' to run KillEmAll.NET again\n";
+                runAndConfigText += "Press 'D' to run KillEmAll.NET again (in Debug Mode)\n";
+                runAndConfigText += "Press 'C' for KillEmAll.NET Configuration\n";
+            }
+            else
+            {
+                runAndConfigText = "Press 'R' to run KillEmAll.NET again                      Press 'C' for KillEmAll.NET Configuration\n";
+                runAndConfigText += "Press 'D' to run KillEmAll.NET again (in Debug Mode)      \n";
+            }
 
             // if we're already flagged to show log on exit, we've been through this method before and specifically selected 'L' to save the log...
             if (_showTextFileOnClose)
@@ -255,6 +282,7 @@ namespace KillEmAll.NET
                 helpText += "Press 'I' at any time for Information on the file.\n";
 
             helpText += "Press 'O' at any time to Open the file path (if detected) in Explorer.\n";
+            helpText += "Press 'P' at any time to Open the file path (if detected) in Command Prompt.\n";
             helpText += "Press 'S' at any time to Search the web.\n";
 
             if (bShowd7xOptions)

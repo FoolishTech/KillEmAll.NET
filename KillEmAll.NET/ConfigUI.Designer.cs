@@ -50,6 +50,7 @@ namespace KillEmAll.NET
             // 
             this.groupBox1.Controls.Add(this.chkStartupAutoKill);
             this.groupBox1.Controls.Add(this.chkStartupRunAsAdmin);
+            this.groupBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.groupBox1.Location = new System.Drawing.Point(19, 14);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(382, 69);
@@ -60,6 +61,7 @@ namespace KillEmAll.NET
             // chkStartupAutoKill
             // 
             this.chkStartupAutoKill.AutoSize = true;
+            this.chkStartupAutoKill.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.chkStartupAutoKill.Location = new System.Drawing.Point(18, 42);
             this.chkStartupAutoKill.Name = "chkStartupAutoKill";
             this.chkStartupAutoKill.Size = new System.Drawing.Size(276, 17);
@@ -70,6 +72,7 @@ namespace KillEmAll.NET
             // chkStartupRunAsAdmin
             // 
             this.chkStartupRunAsAdmin.AutoSize = true;
+            this.chkStartupRunAsAdmin.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.chkStartupRunAsAdmin.Location = new System.Drawing.Point(19, 19);
             this.chkStartupRunAsAdmin.Name = "chkStartupRunAsAdmin";
             this.chkStartupRunAsAdmin.Size = new System.Drawing.Size(186, 17);
@@ -84,6 +87,7 @@ namespace KillEmAll.NET
             this.groupBox2.Controls.Add(this.comboSearchEngineName);
             this.groupBox2.Controls.Add(this.txtSearchEngineURL);
             this.groupBox2.Controls.Add(this.chkSearchFileNameOnly);
+            this.groupBox2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.groupBox2.Location = new System.Drawing.Point(19, 157);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(382, 111);
@@ -94,6 +98,7 @@ namespace KillEmAll.NET
             // label2
             // 
             this.label2.AutoSize = true;
+            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label2.Location = new System.Drawing.Point(15, 60);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(359, 13);
@@ -103,6 +108,7 @@ namespace KillEmAll.NET
             // label1
             // 
             this.label1.AutoSize = true;
+            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.Location = new System.Drawing.Point(202, 19);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(164, 13);
@@ -112,6 +118,7 @@ namespace KillEmAll.NET
             // comboSearchEngineName
             // 
             this.comboSearchEngineName.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboSearchEngineName.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.comboSearchEngineName.FormattingEnabled = true;
             this.comboSearchEngineName.Location = new System.Drawing.Point(202, 35);
             this.comboSearchEngineName.Name = "comboSearchEngineName";
@@ -121,6 +128,7 @@ namespace KillEmAll.NET
             // 
             // txtSearchEngineURL
             // 
+            this.txtSearchEngineURL.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtSearchEngineURL.Location = new System.Drawing.Point(18, 76);
             this.txtSearchEngineURL.Name = "txtSearchEngineURL";
             this.txtSearchEngineURL.Size = new System.Drawing.Size(348, 20);
@@ -130,6 +138,7 @@ namespace KillEmAll.NET
             // chkSearchFileNameOnly
             // 
             this.chkSearchFileNameOnly.AutoSize = true;
+            this.chkSearchFileNameOnly.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.chkSearchFileNameOnly.Location = new System.Drawing.Point(18, 19);
             this.chkSearchFileNameOnly.Name = "chkSearchFileNameOnly";
             this.chkSearchFileNameOnly.Size = new System.Drawing.Size(166, 17);
@@ -151,6 +160,7 @@ namespace KillEmAll.NET
             // groupBox3
             // 
             this.groupBox3.Controls.Add(this.chkDebugAlwaysShowInfo);
+            this.groupBox3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.groupBox3.Location = new System.Drawing.Point(19, 96);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(382, 46);
@@ -161,6 +171,7 @@ namespace KillEmAll.NET
             // chkDebugAlwaysShowInfo
             // 
             this.chkDebugAlwaysShowInfo.AutoSize = true;
+            this.chkDebugAlwaysShowInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.chkDebugAlwaysShowInfo.Location = new System.Drawing.Point(19, 19);
             this.chkDebugAlwaysShowInfo.Name = "chkDebugAlwaysShowInfo";
             this.chkDebugAlwaysShowInfo.Size = new System.Drawing.Size(323, 17);
