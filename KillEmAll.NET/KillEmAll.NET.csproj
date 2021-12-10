@@ -102,8 +102,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\VirusTotalNet\src\VirusTotalNet\VirusTotalNet.csproj">
-      <Project>{48e1ba6e-7d48-44f3-99ee-65447c32a7a8}</Project>
+    <ProjectReference Include="..\VirusTotalNet\src\VirusTotalNet\VirusTotalNet.csproj">
+      <Project>{db6a6358-34a6-451e-a8e6-d88752dd7479}</Project>
       <Name>VirusTotalNet</Name>
     </ProjectReference>
   </ItemGroup>
