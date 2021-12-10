@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.31205.134
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KillEmAll.NET", "KillEmAll.NET\KillEmAll.NET.csproj", "{20552DD3-52AD-46AB-9BCB-7C11D7AFDB46}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VirusTotalNet", "VirusTotalNet\src\VirusTotalNet\VirusTotalNet.csproj", "{D4A68726-320C-4C6B-AC7F-4B7EB9643E07}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VirusTotalNet", "VirusTotalNet\src\VirusTotalNet\VirusTotalNet.csproj", "{F6230091-4D80-4A43-B445-50CA7D7641EB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{20552DD3-52AD-46AB-9BCB-7C11D7AFDB46}.Debug|Any CPU.Build.0 = Release|Any CPU
 		{20552DD3-52AD-46AB-9BCB-7C11D7AFDB46}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{20552DD3-52AD-46AB-9BCB-7C11D7AFDB46}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D4A68726-320C-4C6B-AC7F-4B7EB9643E07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D4A68726-320C-4C6B-AC7F-4B7EB9643E07}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D4A68726-320C-4C6B-AC7F-4B7EB9643E07}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D4A68726-320C-4C6B-AC7F-4B7EB9643E07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6230091-4D80-4A43-B445-50CA7D7641EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6230091-4D80-4A43-B445-50CA7D7641EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6230091-4D80-4A43-B445-50CA7D7641EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6230091-4D80-4A43-B445-50CA7D7641EB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

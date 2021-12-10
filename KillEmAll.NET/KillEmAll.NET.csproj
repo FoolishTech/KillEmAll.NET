@@ -103,7 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirusTotalNet\src\VirusTotalNet\VirusTotalNet.csproj">
-      <Project>{d4a68726-320c-4c6b-ac7f-4b7eb9643e07}</Project>
+      <Project>{f6230091-4d80-4a43-b445-50ca7d7641eb}</Project>
       <Name>VirusTotalNet</Name>
     </ProjectReference>
   </ItemGroup>
