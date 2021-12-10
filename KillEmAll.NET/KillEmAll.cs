@@ -7,6 +7,10 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Security.Cryptography;
 //using System.Security.Cryptography.X509Certificates;
+using VirusTotalNet;
+using VirusTotalNet.ResponseCodes;
+using VirusTotalNet.Results;
+using VirusTotalNet.Objects;
 
 namespace KillEmAll.NET
 {
@@ -67,7 +71,7 @@ namespace KillEmAll.NET
 
             // get my process ID for skipping in the Start() loop
             _myPID = Process.GetCurrentProcess().Id;
-
+            
             // get parent process for the same reason as above...
             // it's ok for _myParentPID to stay at 0 as initialized if parent process isn't running.
             var parentProcess = ParentProcessUtilities.GetParentProcess(_myPID);
@@ -466,6 +470,9 @@ namespace KillEmAll.NET
                                     if (_file_d7xEXE.Length > 0)
                                         launchd7x("/regsearch=" + processName);
                                     goto GetUserInput;
+                                case ConsoleKey.V:
+                                    queryVirusTotal(fullPath, processName);
+                                    goto GetUserInput;
                                 case ConsoleKey.N:
                                     // add to skipped files collection if user specifically skips this file
                                     if (!_skippedProcesses.ContainsKey(sSubject))
@@ -511,6 +518,73 @@ namespace KillEmAll.NET
             {
                 Console.WriteLine($"Skipped \"{processName}\"");
             }
+        }
+
+        async void queryVirusTotal(string fullPath, string fileName)
+        {
+            // get API key and exit if it doesn't exist
+            string apiKey = Program.IniRead("VirusTotal", "APIKey");
+            if (apiKey.Trim().Length < 1)
+                return;
+
+            // exit if we don't have the dlls
+            if (!Program.VirusTotalCapable)
+                return;
+
+            Console.WriteLine("");
+
+            VirusTotal virusTotal = new VirusTotal(apiKey);
+
+            //Use HTTPS instead of HTTP
+            virusTotal.UseTLS = true;
+
+            //Create the EICAR test virus. See http://www.eicar.org/86-0-Intended-use.html
+            byte[] eicar = File.ReadAllBytes(fullPath);
+
+            //Check if the file has been scanned before.
+            FileReport report = await virusTotal.GetFileReportAsync(eicar);
+
+            // determine if it has been scanned before
+            bool scannedBefore = (report.ResponseCode == FileReportResponseCode.Present);
+            bool scanQueued = false;
+
+            Console.WriteLine("Seen before:  " + (scannedBefore ? "Yes" : "No"));
+
+            if (report.ScanId.Length > 0)
+            {
+                // if we have a scan id, it has definitely been scanned before, yet the test above reports false when the scan is already queued,
+                if (!scannedBefore)
+                {
+                    // so set another bool to prevent us from uploading the file yet again
+                    scanQueued = true;
+                }
+                Console.WriteLine("    Scan ID:  " + report.ScanId);
+            }
+
+            Console.WriteLine("VT Response:  " + report.VerboseMsg);
+
+            Console.WriteLine("");
+
+            if (scannedBefore)
+            {
+                // print previous scan results
+                foreach (KeyValuePair<string, ScanEngine> scan in report.Scans)
+                {
+                    Console.WriteLine("{0,-25} Detected: {1}", scan.Key, scan.Value.Detected);
+                }
+            }
+            else
+            {
+                if (!scanQueued)
+                {
+                    // scan file
+                    ScanResult fileResult = await virusTotal.ScanFileAsync(eicar, fileName);
+
+                    Console.WriteLine("    Scan ID:  " + fileResult.ScanId);
+                    Console.WriteLine("VT Response:  " + fileResult.VerboseMsg);
+                }
+            }
+            Console.WriteLine("");
         }
 
         void printFileInfo(string fullPath, string processName)

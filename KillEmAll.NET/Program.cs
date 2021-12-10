@@ -9,6 +9,7 @@ namespace KillEmAll.NET
 {
     class Program
     {
+        static string _appPath;
         static string _iniFile;
         static string _userType = "Standard User";
         static string _endMsg = "KillEmAll Completed!";
@@ -16,6 +17,24 @@ namespace KillEmAll.NET
         static bool _showTextFileOnClose = false;
         static string _file_d7xEXE = "";
         static string _file_AllowList = "";
+
+        static bool _VirusTotalCapable = false;
+        public static bool VirusTotalCapable
+        {
+            get 
+            { 
+                // once it is set = true, always assume true to avoid checking multiple times
+                if (!_VirusTotalCapable)
+                {
+                    // determine if we're capable of VirusTotal functionality
+                    if (File.Exists(_appPath + "\\VirusTotalNet.dll"))
+                        if (File.Exists(_appPath + "\\Newtonsoft.Json.dll"))
+                            _VirusTotalCapable = true;
+                }
+                return _VirusTotalCapable;
+            }
+        }
+
 
         static void Main(string[] args)
         {
@@ -34,7 +53,8 @@ namespace KillEmAll.NET
             // create the proc object to set console title with version info and INI file variable
             var proc = Process.GetCurrentProcess();
             Console.Title = "KillEmAll.NET v" + proc.MainModule.FileVersionInfo.ProductVersion + " (by www.d7xTech.com) - Running as " + _userType;
-            _iniFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll.NET.ini";
+            _appPath = Path.GetDirectoryName(proc.MainModule.FileName);
+            _iniFile = _appPath + "\\KillEmAll.NET.ini";
 
             // before anything else, determine if we need to force launch as admin
             if (!isRunningAsAdmin())
@@ -82,7 +102,7 @@ namespace KillEmAll.NET
             if (!bAutoStart)
                 if (!bDebugMode)
                         bDebugMode = pressAnyKeyToStart();
-            
+
             // moved the rest to a new method so we can repeat KillEmAll at the end if desired
             startKillEmAll(bDebugMode, bRunAuto);
         }
@@ -269,6 +289,7 @@ namespace KillEmAll.NET
             }
         }
 
+
         public static void PrintDebugHelp(bool bShowd7xOptions)
         {
             string helpText = "Press 'C' at any time for KillEmAll.NET Configuration.\n";
@@ -284,6 +305,12 @@ namespace KillEmAll.NET
             helpText += "Press 'O' at any time to Open the file path (if detected) in Explorer.\n";
             helpText += "Press 'P' at any time to Open the file path (if detected) in Command Prompt.\n";
             helpText += "Press 'S' at any time to Search the web.\n";
+
+            // get API key and proceed if exist
+            string apiKey = Program.IniRead("VirusTotal", "APIKey");
+            if (apiKey.Trim().Length > 1)
+                if (VirusTotalCapable)
+                    helpText += "Press 'V' at any time to query VirusTotal.\n";
 
             if (bShowd7xOptions)
             {

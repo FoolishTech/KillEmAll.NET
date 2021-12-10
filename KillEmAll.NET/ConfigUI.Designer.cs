@@ -41,9 +41,13 @@ namespace KillEmAll.NET
             this.cmdSaveExit = new System.Windows.Forms.Button();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.chkDebugAlwaysShowInfo = new System.Windows.Forms.CheckBox();
+            this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.txtVirusTotalAPIKey = new System.Windows.Forms.TextBox();
+            this.label3 = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
+            this.groupBox4.SuspendLayout();
             this.SuspendLayout();
             // 
             // groupBox1
@@ -149,7 +153,7 @@ namespace KillEmAll.NET
             // cmdSaveExit
             // 
             this.cmdSaveExit.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.cmdSaveExit.Location = new System.Drawing.Point(277, 283);
+            this.cmdSaveExit.Location = new System.Drawing.Point(269, 370);
             this.cmdSaveExit.Name = "cmdSaveExit";
             this.cmdSaveExit.Size = new System.Drawing.Size(124, 30);
             this.cmdSaveExit.TabIndex = 2;
@@ -179,11 +183,41 @@ namespace KillEmAll.NET
             this.chkDebugAlwaysShowInfo.Text = "Always show extended file information (don\'t require pressing \'I\')";
             this.chkDebugAlwaysShowInfo.UseVisualStyleBackColor = true;
             // 
+            // groupBox4
+            // 
+            this.groupBox4.Controls.Add(this.label3);
+            this.groupBox4.Controls.Add(this.txtVirusTotalAPIKey);
+            this.groupBox4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.groupBox4.Location = new System.Drawing.Point(19, 283);
+            this.groupBox4.Name = "groupBox4";
+            this.groupBox4.Size = new System.Drawing.Size(382, 74);
+            this.groupBox4.TabIndex = 4;
+            this.groupBox4.TabStop = false;
+            this.groupBox4.Text = "VirusTotal API Key";
+            // 
+            // txtVirusTotalAPIKey
+            // 
+            this.txtVirusTotalAPIKey.Location = new System.Drawing.Point(18, 44);
+            this.txtVirusTotalAPIKey.Name = "txtVirusTotalAPIKey";
+            this.txtVirusTotalAPIKey.Size = new System.Drawing.Size(348, 20);
+            this.txtVirusTotalAPIKey.TabIndex = 0;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label3.Location = new System.Drawing.Point(15, 28);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(330, 13);
+            this.label3.TabIndex = 6;
+            this.label3.Text = "This enables the Debug mode option to Press \'V\' to query VirusTotal.";
+            // 
             // ConfigUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(421, 325);
+            this.ClientSize = new System.Drawing.Size(421, 412);
+            this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.cmdSaveExit);
             this.Controls.Add(this.groupBox2);
@@ -201,6 +235,8 @@ namespace KillEmAll.NET
             this.groupBox2.PerformLayout();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
+            this.groupBox4.ResumeLayout(false);
+            this.groupBox4.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -219,5 +255,8 @@ namespace KillEmAll.NET
         private System.Windows.Forms.CheckBox chkStartupAutoKill;
         private System.Windows.Forms.GroupBox groupBox3;
         private System.Windows.Forms.CheckBox chkDebugAlwaysShowInfo;
+        private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.TextBox txtVirusTotalAPIKey;
     }
 }

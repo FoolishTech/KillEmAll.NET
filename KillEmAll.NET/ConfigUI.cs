@@ -58,6 +58,8 @@ namespace KillEmAll.NET
 
             txtSearchEngineURL.Text = Program.IniRead("Search", "URL");
 
+            txtVirusTotalAPIKey.Text = Program.IniRead("VirusTotal", "APIKey");
+
             // if nothing, set a default
             if (txtSearchEngineURL.Text.Trim().Length < 1)
             {
@@ -103,7 +105,9 @@ namespace KillEmAll.NET
                 value = "0";
             Program.IniWrite("Search", "FileNameOnly", value);
 
-            Program.IniWrite("Search", "URL", txtSearchEngineURL.Text);
+            Program.IniWrite("Search", "URL", txtSearchEngineURL.Text.Trim());
+
+            Program.IniWrite("VirusTotal", "APIKey", txtVirusTotalAPIKey.Text.Trim());
 
             this.Close();
         }
