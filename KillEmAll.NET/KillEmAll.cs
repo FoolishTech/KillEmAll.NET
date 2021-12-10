@@ -538,19 +538,19 @@ namespace KillEmAll.NET
             //Use HTTPS instead of HTTP
             virusTotal.UseTLS = true;
 
-            //Create the EICAR test virus. See http://www.eicar.org/86-0-Intended-use.html
-            byte[] eicar = File.ReadAllBytes(fullPath);
+            // get file bytes
+            byte[] fileBytes = File.ReadAllBytes(fullPath);
 
-            //Check if the file has been scanned before.
-            FileReport report = await virusTotal.GetFileReportAsync(eicar);
+            // get file report
+            FileReport initialReport = await virusTotal.GetFileReportAsync(fileBytes);
 
             // determine if it has been scanned before
-            bool scannedBefore = (report.ResponseCode == FileReportResponseCode.Present);
+            bool scannedBefore = (initialReport.ResponseCode == FileReportResponseCode.Present);
             bool scanQueued = false;
 
-            Console.WriteLine("Seen before:  " + (scannedBefore ? "Yes" : "No"));
+            Console.WriteLine("  Seen before = " + (scannedBefore ? "Yes" : "No"));
 
-            if (report.ScanId.Length > 0)
+            if (initialReport.ScanId.Length > 0)
             {
                 // if we have a scan id, it has definitely been scanned before, yet the test above reports false when the scan is already queued,
                 if (!scannedBefore)
@@ -558,33 +558,55 @@ namespace KillEmAll.NET
                     // so set another bool to prevent us from uploading the file yet again
                     scanQueued = true;
                 }
-                Console.WriteLine("    Scan ID:  " + report.ScanId);
+                Console.WriteLine("  Scan ID     = " + initialReport.ScanId);
             }
 
-            Console.WriteLine("VT Response:  " + report.VerboseMsg);
-
-            Console.WriteLine("");
+            Console.WriteLine("  VT Response = " + initialReport.VerboseMsg);
 
             if (scannedBefore)
             {
-                // print previous scan results
-                foreach (KeyValuePair<string, ScanEngine> scan in report.Scans)
+                // if scanned before, print previous scan results
+                
+                // start off with a line between the bits above and the result or the detections
+                Console.WriteLine("  -");
+
+                // prepare to gather overall result
+                int detectedCount = 0;
+                int totalCount = 0;
+
+                // print specific engine results, but only if positive
+                foreach (KeyValuePair<string, ScanEngine> scan in initialReport.Scans)
                 {
-                    Console.WriteLine("{0,-25} Detected: {1}", scan.Key, scan.Value.Detected);
+                    totalCount++;
+                    if (scan.Value.Detected)
+                    {
+                        detectedCount++;
+                        //Console.WriteLine("    {0,-25} Detected: {1}", scan.Key, scan.Value.Detected);
+                        Console.WriteLine("  Detected by:  " + scan.Key);
+                    }
                 }
+
+                // so if there is a detection, we want another line between the bits above and the result
+                if (detectedCount > 0)
+                    Console.WriteLine("  -");
+                
+                // print overall result
+                Console.WriteLine("  VT Result   =  ({0}/{1})\n", detectedCount, totalCount);
             }
             else
             {
                 if (!scanQueued)
                 {
-                    // scan file
-                    ScanResult fileResult = await virusTotal.ScanFileAsync(eicar, fileName);
+                    Console.WriteLine("\n  Uploading File to VirusTotal...\n");
 
-                    Console.WriteLine("    Scan ID:  " + fileResult.ScanId);
-                    Console.WriteLine("VT Response:  " + fileResult.VerboseMsg);
+                    // scan file
+                    ScanResult fileResult = await virusTotal.ScanFileAsync(fileBytes, fileName);
+                    
+                    Console.WriteLine("  Scan ID     = " + fileResult.ScanId);
+                    Console.WriteLine("  VT Response = " + fileResult.VerboseMsg);
+                    Console.WriteLine("");
                 }
             }
-            Console.WriteLine("");
         }
 
         void printFileInfo(string fullPath, string processName)
@@ -599,6 +621,9 @@ namespace KillEmAll.NET
             // put some space between the prompt and the info
             Console.WriteLine("\n");
 
+            // check digital sig
+            Console.WriteLine("  File Signature = " + DigitalSig.GetStatus(fullPath));
+            
             // is file hidden
             if (isHidden(fullPath))
                 Console.WriteLine("  File is Hidden = TRUE");

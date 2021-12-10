@@ -80,6 +80,7 @@
     <Compile Include="ConfigUI.Designer.cs">
       <DependentUpon>ConfigUI.cs</DependentUpon>
     </Compile>
+    <Compile Include="DigitalSig.cs" />
     <Compile Include="KillEmAll.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -101,8 +102,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\VirusTotalNet\src\VirusTotalNet\VirusTotalNet.csproj">
-      <Project>{511fea0e-6ec2-4878-9670-6e2220cc5442}</Project>
+    <ProjectReference Include="..\VirusTotalNet\src\VirusTotalNet\VirusTotalNet.csproj">
+      <Project>{d4a68726-320c-4c6b-ac7f-4b7eb9643e07}</Project>
       <Name>VirusTotalNet</Name>
     </ProjectReference>
   </ItemGroup>
