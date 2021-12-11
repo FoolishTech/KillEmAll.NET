@@ -42,8 +42,8 @@ namespace KillEmAll.NET
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.chkDebugAlwaysShowInfo = new System.Windows.Forms.CheckBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
-            this.txtVirusTotalAPIKey = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
+            this.txtVirusTotalAPIKey = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -195,13 +195,6 @@ namespace KillEmAll.NET
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "VirusTotal API Key";
             // 
-            // txtVirusTotalAPIKey
-            // 
-            this.txtVirusTotalAPIKey.Location = new System.Drawing.Point(18, 44);
-            this.txtVirusTotalAPIKey.Name = "txtVirusTotalAPIKey";
-            this.txtVirusTotalAPIKey.Size = new System.Drawing.Size(348, 20);
-            this.txtVirusTotalAPIKey.TabIndex = 0;
-            // 
             // label3
             // 
             this.label3.AutoSize = true;
@@ -211,6 +204,14 @@ namespace KillEmAll.NET
             this.label3.Size = new System.Drawing.Size(330, 13);
             this.label3.TabIndex = 6;
             this.label3.Text = "This enables the Debug mode option to Press \'V\' to query VirusTotal.";
+            // 
+            // txtVirusTotalAPIKey
+            // 
+            this.txtVirusTotalAPIKey.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtVirusTotalAPIKey.Location = new System.Drawing.Point(18, 44);
+            this.txtVirusTotalAPIKey.Name = "txtVirusTotalAPIKey";
+            this.txtVirusTotalAPIKey.Size = new System.Drawing.Size(348, 20);
+            this.txtVirusTotalAPIKey.TabIndex = 0;
             // 
             // ConfigUI
             // 

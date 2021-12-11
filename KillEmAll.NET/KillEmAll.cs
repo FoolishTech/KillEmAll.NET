@@ -522,6 +522,16 @@ namespace KillEmAll.NET
 
         async void queryVirusTotal(string fullPath, string fileName)
         {
+            // ensure we were passed a path
+            if (!fullPath.Contains("\\"))
+            {
+                if (isRunningAsAdmin())
+                    Console.WriteLine("\n  [No file path; cannot find file to upload!]");
+                else
+                    Console.WriteLine("\n  [No file path; try running as Administrator.]");
+                return;
+            }
+
             // get API key and exit if it doesn't exist
             string apiKey = Program.IniRead("VirusTotal", "APIKey");
             if (apiKey.Trim().Length < 1)
@@ -613,8 +623,11 @@ namespace KillEmAll.NET
         {
             // ensure we were passed a path
             if (!fullPath.Contains("\\"))
-            {
-                Console.WriteLine("\n  [No file path; cannot query file information!]");
+            { 
+                if (isRunningAsAdmin())
+                    Console.WriteLine("\n  [No file path; cannot query file information!]");
+                else
+                    Console.WriteLine("\n  [No file path; try running as Administrator.]");
                 return;
             }
 
@@ -714,9 +727,13 @@ namespace KillEmAll.NET
 
         void openInExplorer(string fullPath)
         {
+            // ensure we were passed a path
             if (!fullPath.Contains("\\"))
             {
-                Console.WriteLine("\n  [No file path to open!]");
+                if (isRunningAsAdmin())
+                    Console.WriteLine("\n  [No file path to open!]");
+                else
+                    Console.WriteLine("\n  [No file path; try running as Administrator.]");
                 return;
             }
 
@@ -732,12 +749,16 @@ namespace KillEmAll.NET
 
         void openInCommandPrompt(string fullPath)
         {
+            // ensure we were passed a path
             if (!fullPath.Contains("\\"))
             {
-                Console.WriteLine("\n  [No file path to open!]");
+                if (isRunningAsAdmin())
+                    Console.WriteLine("\n  [No file path to open!]");
+                else
+                    Console.WriteLine("\n  [No file path; try running as Administrator.]");
                 return;
             }
-
+            
             string pathOnly = Path.GetDirectoryName(fullPath);
 
             var p = new Process();
