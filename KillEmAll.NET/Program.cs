@@ -16,7 +16,6 @@ namespace KillEmAll.NET
         static bool _bLogToFile = false;
         static bool _showTextFileOnClose = false;
         static string _file_d7xEXE = "";
-        static string _file_AllowList = "";
 
         static bool _VirusTotalCapable = false;
         public static bool VirusTotalCapable
@@ -54,6 +53,9 @@ namespace KillEmAll.NET
             var proc = Process.GetCurrentProcess();
             Console.Title = "KillEmAll.NET v" + proc.MainModule.FileVersionInfo.ProductVersion + " (by www.d7xTech.com) - Running as " + _userType;
             _appPath = Path.GetDirectoryName(proc.MainModule.FileName);
+            // if in root path, strip off the trailing backslash
+            if (_appPath.EndsWith("\\"))
+                _appPath = _appPath.Substring(0, _appPath.Length - 1);
             _iniFile = _appPath + "\\KillEmAll.NET.ini";
 
             // before anything else, determine if we need to force launch as admin
@@ -144,9 +146,6 @@ namespace KillEmAll.NET
                 // append to log text
                 logText += foo.Log();
 
-                // get info from class for 'I' press
-                _file_AllowList = foo.File_AllowList;
-
                 // write end msg
                 Console.WriteLine("\n" + _endMsg);
             }
@@ -197,10 +196,11 @@ namespace KillEmAll.NET
                     bEnableDebugMode = true;
                     break;
                 case ConsoleKey.I:
-                    Console.Clear();
-                    Console.WriteLine("\nConfig File = " + _iniFile);
-                    Console.WriteLine("Log File    = " + getLogFilePathAndName());
+                    printAppInfo();
                     Console.WriteLine("");
+                    goto PrintMsg;
+                case ConsoleKey.D0:
+                    zeroMenu();
                     goto PrintMsg;
             }
             // always clear console after prompt
@@ -210,7 +210,7 @@ namespace KillEmAll.NET
 
         static void pressAnyKeyToExit(string logText)
         {
-            string savelogText = "Press 'L' to save results to KillEmAll_Log.txt\n";
+            string savelogText = "Press 'L' to generate a log file\n";
             string runAsAdminText = "Press 'A' to run KillEmAll.NET again (as Administrator)    \n";
             string pressAnyKeyText = "\nPress any other key to exit. . .";
 
@@ -234,7 +234,7 @@ namespace KillEmAll.NET
 
             // if we're already flagged to show log on exit, we've been through this method before and specifically selected 'L' to save the log...
             if (_showTextFileOnClose)
-            {        
+            {
                 // so automatically log everything else; pass a silent flag because we don't need to see that every time.
                 logTextToFile(logText, true);
                 // and clear this string so the 'L' option isn't shown below
@@ -269,16 +269,19 @@ namespace KillEmAll.NET
                     config.ShowDialog();
                     goto GetResponse;
                 case ConsoleKey.L:
-                    logTextToFile(logText);
-                    _showTextFileOnClose = true;
-                    Console.Write(runAndConfigText + runAsAdminText + pressAnyKeyText);
+                    // if we're not flagged to show file on exit, we haven't logged yet, so allow to log text to file
+                    if (!_showTextFileOnClose)
+                    {
+                        logTextToFile(logText);
+                        _showTextFileOnClose = true;
+                        Console.Write(runAndConfigText + runAsAdminText + pressAnyKeyText);
+                    }
                     goto GetResponse;
                 case ConsoleKey.I:
-                    Console.Clear();
-                    Console.WriteLine("\nConfig File = " + _iniFile);
-                    Console.WriteLine("Allow List  = " + _file_AllowList);
-                    Console.WriteLine("Log File    = " + getLogFilePathAndName());
-                    Console.WriteLine("d7x EXE     = " + _file_d7xEXE);
+                    printAppInfo();
+                    goto PrintMsg;
+                case ConsoleKey.D0:
+                    zeroMenu();
                     goto PrintMsg;
             }
 
@@ -289,6 +292,101 @@ namespace KillEmAll.NET
             }
         }
 
+        static void zeroMenu()
+        {
+            // just a quick way to delete a file; right now it's just the log file but I can add the allow list and, well I dunno what else...
+
+            string theFile = "";
+            string theFileType = "";
+
+            ConsoleKeyInfo foo = Console.ReadKey();
+            switch (foo.Key)
+            {
+                case ConsoleKey.L:
+                    theFileType = "Log File";
+                    theFile = getLogFilePathAndName();
+                    break;
+                default:
+                    return;
+            }
+
+            if (theFile.Length > 0)
+            {
+                if (!File.Exists(theFile))
+                {
+                    Console.WriteLine("\n\n{0} does not exist!\n", theFileType);
+                    return;
+                }
+
+                Console.Write("\n\nDelete {0}?  [y/N] (Yes/No)", theFileType);
+            GetInput2:
+                ConsoleKeyInfo bar = Console.ReadKey();
+                Console.WriteLine("");
+                switch (bar.Key)
+                {
+                    case ConsoleKey.Y:
+                        try
+                        {
+                            File.Delete(theFile);
+                            Console.WriteLine("Deleted {0}.", theFileType);
+                            // we need to reset flag to show log on exit
+                            _showTextFileOnClose = false;
+                        }
+                        catch
+                        {
+                            Console.WriteLine("There was an error deleting the file!");
+                        }
+                        break;
+                    case ConsoleKey.N:
+                        break;
+                    case ConsoleKey.Enter:
+                        break;
+                    case ConsoleKey.Escape:
+                        break;
+                    default:
+                        goto GetInput2;
+                }
+            }
+            Console.WriteLine("");
+        }
+
+        static void printAppInfo()
+        {
+            string logFile = getLogFilePathAndName();
+            string allowListFile = "";
+            string d7x3PTPath = "";
+
+            if (_file_d7xEXE.Length < 1)
+                _file_d7xEXE = RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "AppEXE");
+
+            if (_file_d7xEXE.Length > 1)
+            {
+                allowListFile = Path.GetDirectoryName(_file_d7xEXE) + "\\d7x Resources\\Defs\\User\\Process_Whitelist.txt";
+                d7x3PTPath = Program.RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "3ptDir");
+            }
+            else
+            {
+                // get app path
+                var proc = Process.GetCurrentProcess();
+                allowListFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Allowed.txt";
+            }
+
+            Console.Clear();
+
+            Console.WriteLine("\nVirusTotal  = " + (VirusTotalCapable ? "Both required DLLs found; VirusTotal functionality will be available." : "One or more required DLLs is missing; VirusTotal functionality will be unavailable!"));
+
+            Console.WriteLine("Config File = {0}  (File Exists = {1})", _iniFile, File.Exists(_iniFile).ToString());
+
+            Console.WriteLine("Allow List  = {0}  (File Exists = {1})", allowListFile, File.Exists(allowListFile).ToString());
+
+            Console.WriteLine("Log File    = {0}  (File Exists = {1})", logFile, File.Exists(logFile).ToString());
+
+            if (_file_d7xEXE.Length > 1)
+                Console.WriteLine("d7x EXE     = " + _file_d7xEXE);
+
+            if (d7x3PTPath.Length > 1)
+                Console.WriteLine("d7x 3PT Dir = " + d7x3PTPath);
+        }
 
         public static void PrintDebugHelp(bool bShowd7xOptions)
         {
@@ -460,6 +558,23 @@ namespace KillEmAll.NET
                 }
             }
             return ret;
+        }
+
+        public static string FileToString(string file)
+        {
+            string contents = "";
+
+            if (!File.Exists(file))
+                return contents;
+
+            try
+            {
+                contents = File.ReadAllText(file);
+            }
+            catch
+            {
+            }
+            return contents;
         }
 
     }

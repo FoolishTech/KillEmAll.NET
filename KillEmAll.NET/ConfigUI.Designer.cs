@@ -29,38 +29,46 @@ namespace KillEmAll.NET
         /// </summary>
         private void InitializeComponent()
         {
-            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.boxStartup = new System.Windows.Forms.GroupBox();
             this.chkStartupAutoKill = new System.Windows.Forms.CheckBox();
             this.chkStartupRunAsAdmin = new System.Windows.Forms.CheckBox();
-            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.boxSearch = new System.Windows.Forms.GroupBox();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.comboSearchEngineName = new System.Windows.Forms.ComboBox();
             this.txtSearchEngineURL = new System.Windows.Forms.TextBox();
             this.chkSearchFileNameOnly = new System.Windows.Forms.CheckBox();
             this.cmdSaveExit = new System.Windows.Forms.Button();
-            this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.boxDebug = new System.Windows.Forms.GroupBox();
             this.chkDebugAlwaysShowInfo = new System.Windows.Forms.CheckBox();
-            this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.boxVirusTotal = new System.Windows.Forms.GroupBox();
             this.label3 = new System.Windows.Forms.Label();
             this.txtVirusTotalAPIKey = new System.Windows.Forms.TextBox();
-            this.groupBox1.SuspendLayout();
-            this.groupBox2.SuspendLayout();
-            this.groupBox3.SuspendLayout();
-            this.groupBox4.SuspendLayout();
+            this.label4 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
+            this.cmdAllowList = new System.Windows.Forms.Button();
+            this.cmdGeneralSettings = new System.Windows.Forms.Button();
+            this.boxAllowed = new System.Windows.Forms.GroupBox();
+            this.txtAllowedList = new System.Windows.Forms.TextBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.boxStartup.SuspendLayout();
+            this.boxSearch.SuspendLayout();
+            this.boxDebug.SuspendLayout();
+            this.boxVirusTotal.SuspendLayout();
+            this.boxAllowed.SuspendLayout();
             this.SuspendLayout();
             // 
-            // groupBox1
+            // boxStartup
             // 
-            this.groupBox1.Controls.Add(this.chkStartupAutoKill);
-            this.groupBox1.Controls.Add(this.chkStartupRunAsAdmin);
-            this.groupBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.groupBox1.Location = new System.Drawing.Point(19, 14);
-            this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(382, 69);
-            this.groupBox1.TabIndex = 0;
-            this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Startup Behavior";
+            this.boxStartup.Controls.Add(this.chkStartupAutoKill);
+            this.boxStartup.Controls.Add(this.chkStartupRunAsAdmin);
+            this.boxStartup.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.boxStartup.Location = new System.Drawing.Point(161, 12);
+            this.boxStartup.Name = "boxStartup";
+            this.boxStartup.Size = new System.Drawing.Size(382, 69);
+            this.boxStartup.TabIndex = 0;
+            this.boxStartup.TabStop = false;
+            this.boxStartup.Text = "Startup Behavior";
             // 
             // chkStartupAutoKill
             // 
@@ -84,20 +92,20 @@ namespace KillEmAll.NET
             this.chkStartupRunAsAdmin.Text = "Always force Run as Administrator";
             this.chkStartupRunAsAdmin.UseVisualStyleBackColor = true;
             // 
-            // groupBox2
+            // boxSearch
             // 
-            this.groupBox2.Controls.Add(this.label2);
-            this.groupBox2.Controls.Add(this.label1);
-            this.groupBox2.Controls.Add(this.comboSearchEngineName);
-            this.groupBox2.Controls.Add(this.txtSearchEngineURL);
-            this.groupBox2.Controls.Add(this.chkSearchFileNameOnly);
-            this.groupBox2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.groupBox2.Location = new System.Drawing.Point(19, 157);
-            this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(382, 111);
-            this.groupBox2.TabIndex = 1;
-            this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Search Configuration";
+            this.boxSearch.Controls.Add(this.label2);
+            this.boxSearch.Controls.Add(this.label1);
+            this.boxSearch.Controls.Add(this.comboSearchEngineName);
+            this.boxSearch.Controls.Add(this.txtSearchEngineURL);
+            this.boxSearch.Controls.Add(this.chkSearchFileNameOnly);
+            this.boxSearch.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.boxSearch.Location = new System.Drawing.Point(161, 155);
+            this.boxSearch.Name = "boxSearch";
+            this.boxSearch.Size = new System.Drawing.Size(382, 111);
+            this.boxSearch.TabIndex = 1;
+            this.boxSearch.TabStop = false;
+            this.boxSearch.Text = "Search Configuration";
             // 
             // label2
             // 
@@ -153,24 +161,24 @@ namespace KillEmAll.NET
             // cmdSaveExit
             // 
             this.cmdSaveExit.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.cmdSaveExit.Location = new System.Drawing.Point(269, 370);
+            this.cmdSaveExit.Location = new System.Drawing.Point(12, 325);
             this.cmdSaveExit.Name = "cmdSaveExit";
-            this.cmdSaveExit.Size = new System.Drawing.Size(124, 30);
+            this.cmdSaveExit.Size = new System.Drawing.Size(133, 30);
             this.cmdSaveExit.TabIndex = 2;
             this.cmdSaveExit.Text = "Save && Exit";
             this.cmdSaveExit.UseVisualStyleBackColor = true;
             this.cmdSaveExit.Click += new System.EventHandler(this.cmdSaveExit_Click);
             // 
-            // groupBox3
+            // boxDebug
             // 
-            this.groupBox3.Controls.Add(this.chkDebugAlwaysShowInfo);
-            this.groupBox3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.groupBox3.Location = new System.Drawing.Point(19, 96);
-            this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(382, 46);
-            this.groupBox3.TabIndex = 3;
-            this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Debug Mode Behavior";
+            this.boxDebug.Controls.Add(this.chkDebugAlwaysShowInfo);
+            this.boxDebug.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.boxDebug.Location = new System.Drawing.Point(161, 94);
+            this.boxDebug.Name = "boxDebug";
+            this.boxDebug.Size = new System.Drawing.Size(382, 46);
+            this.boxDebug.TabIndex = 3;
+            this.boxDebug.TabStop = false;
+            this.boxDebug.Text = "Debug Mode Behavior";
             // 
             // chkDebugAlwaysShowInfo
             // 
@@ -183,17 +191,19 @@ namespace KillEmAll.NET
             this.chkDebugAlwaysShowInfo.Text = "Always show extended file information (don\'t require pressing \'I\')";
             this.chkDebugAlwaysShowInfo.UseVisualStyleBackColor = true;
             // 
-            // groupBox4
+            // boxVirusTotal
             // 
-            this.groupBox4.Controls.Add(this.label3);
-            this.groupBox4.Controls.Add(this.txtVirusTotalAPIKey);
-            this.groupBox4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.groupBox4.Location = new System.Drawing.Point(19, 283);
-            this.groupBox4.Name = "groupBox4";
-            this.groupBox4.Size = new System.Drawing.Size(382, 74);
-            this.groupBox4.TabIndex = 4;
-            this.groupBox4.TabStop = false;
-            this.groupBox4.Text = "VirusTotal API Key";
+            this.boxVirusTotal.Controls.Add(this.label5);
+            this.boxVirusTotal.Controls.Add(this.label4);
+            this.boxVirusTotal.Controls.Add(this.label3);
+            this.boxVirusTotal.Controls.Add(this.txtVirusTotalAPIKey);
+            this.boxVirusTotal.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.boxVirusTotal.Location = new System.Drawing.Point(161, 281);
+            this.boxVirusTotal.Name = "boxVirusTotal";
+            this.boxVirusTotal.Size = new System.Drawing.Size(382, 88);
+            this.boxVirusTotal.TabIndex = 4;
+            this.boxVirusTotal.TabStop = false;
+            this.boxVirusTotal.Text = "VirusTotal API Key";
             // 
             // label3
             // 
@@ -213,16 +223,96 @@ namespace KillEmAll.NET
             this.txtVirusTotalAPIKey.Size = new System.Drawing.Size(348, 20);
             this.txtVirusTotalAPIKey.TabIndex = 0;
             // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Underline))), System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label4.ForeColor = System.Drawing.Color.Blue;
+            this.label4.Location = new System.Drawing.Point(16, 67);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(66, 13);
+            this.label4.TabIndex = 7;
+            this.label4.Text = "Click Here";
+            this.label4.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.label4.Click += new System.EventHandler(this.label4_Click);
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label5.Location = new System.Drawing.Point(88, 67);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(176, 13);
+            this.label5.TabIndex = 8;
+            this.label5.Text = "to learn how to obtain your API Key.";
+            // 
+            // cmdAllowList
+            // 
+            this.cmdAllowList.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cmdAllowList.Location = new System.Drawing.Point(12, 64);
+            this.cmdAllowList.Name = "cmdAllowList";
+            this.cmdAllowList.Size = new System.Drawing.Size(133, 30);
+            this.cmdAllowList.TabIndex = 5;
+            this.cmdAllowList.Text = "Allowed Programs";
+            this.cmdAllowList.UseVisualStyleBackColor = true;
+            this.cmdAllowList.Click += new System.EventHandler(this.cmdAllowList_Click);
+            // 
+            // cmdGeneralSettings
+            // 
+            this.cmdGeneralSettings.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cmdGeneralSettings.Location = new System.Drawing.Point(12, 18);
+            this.cmdGeneralSettings.Name = "cmdGeneralSettings";
+            this.cmdGeneralSettings.Size = new System.Drawing.Size(133, 30);
+            this.cmdGeneralSettings.TabIndex = 6;
+            this.cmdGeneralSettings.Text = "General Settings";
+            this.cmdGeneralSettings.UseVisualStyleBackColor = true;
+            this.cmdGeneralSettings.Click += new System.EventHandler(this.cmdGeneralSettings_Click);
+            // 
+            // boxAllowed
+            // 
+            this.boxAllowed.Controls.Add(this.label6);
+            this.boxAllowed.Controls.Add(this.txtAllowedList);
+            this.boxAllowed.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.boxAllowed.Location = new System.Drawing.Point(158, 13);
+            this.boxAllowed.Name = "boxAllowed";
+            this.boxAllowed.Size = new System.Drawing.Size(385, 356);
+            this.boxAllowed.TabIndex = 7;
+            this.boxAllowed.TabStop = false;
+            this.boxAllowed.Text = "Allowed Programs (these programs will not be terminated.)";
+            // 
+            // txtAllowedList
+            // 
+            this.txtAllowedList.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtAllowedList.Location = new System.Drawing.Point(10, 38);
+            this.txtAllowedList.Multiline = true;
+            this.txtAllowedList.Name = "txtAllowedList";
+            this.txtAllowedList.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtAllowedList.Size = new System.Drawing.Size(367, 312);
+            this.txtAllowedList.TabIndex = 0;
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label6.Location = new System.Drawing.Point(9, 22);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(184, 13);
+            this.label6.TabIndex = 1;
+            this.label6.Text = "One program name per line; no paths.";
+            // 
             // ConfigUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(421, 412);
-            this.Controls.Add(this.groupBox4);
-            this.Controls.Add(this.groupBox3);
+            this.ClientSize = new System.Drawing.Size(557, 379);
+            this.Controls.Add(this.cmdGeneralSettings);
+            this.Controls.Add(this.cmdAllowList);
+            this.Controls.Add(this.boxVirusTotal);
+            this.Controls.Add(this.boxDebug);
             this.Controls.Add(this.cmdSaveExit);
-            this.Controls.Add(this.groupBox2);
-            this.Controls.Add(this.groupBox1);
+            this.Controls.Add(this.boxSearch);
+            this.Controls.Add(this.boxStartup);
+            this.Controls.Add(this.boxAllowed);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -230,23 +320,25 @@ namespace KillEmAll.NET
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "KillEmAll.NET Configuration";
             this.Load += new System.EventHandler(this.ConfigUI_Load);
-            this.groupBox1.ResumeLayout(false);
-            this.groupBox1.PerformLayout();
-            this.groupBox2.ResumeLayout(false);
-            this.groupBox2.PerformLayout();
-            this.groupBox3.ResumeLayout(false);
-            this.groupBox3.PerformLayout();
-            this.groupBox4.ResumeLayout(false);
-            this.groupBox4.PerformLayout();
+            this.boxStartup.ResumeLayout(false);
+            this.boxStartup.PerformLayout();
+            this.boxSearch.ResumeLayout(false);
+            this.boxSearch.PerformLayout();
+            this.boxDebug.ResumeLayout(false);
+            this.boxDebug.PerformLayout();
+            this.boxVirusTotal.ResumeLayout(false);
+            this.boxVirusTotal.PerformLayout();
+            this.boxAllowed.ResumeLayout(false);
+            this.boxAllowed.PerformLayout();
             this.ResumeLayout(false);
 
         }
 
         #endregion
 
-        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.GroupBox boxStartup;
         private System.Windows.Forms.CheckBox chkStartupRunAsAdmin;
-        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.GroupBox boxSearch;
         private System.Windows.Forms.CheckBox chkSearchFileNameOnly;
         private System.Windows.Forms.ComboBox comboSearchEngineName;
         private System.Windows.Forms.TextBox txtSearchEngineURL;
@@ -254,10 +346,17 @@ namespace KillEmAll.NET
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.CheckBox chkStartupAutoKill;
-        private System.Windows.Forms.GroupBox groupBox3;
+        private System.Windows.Forms.GroupBox boxDebug;
         private System.Windows.Forms.CheckBox chkDebugAlwaysShowInfo;
-        private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.GroupBox boxVirusTotal;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox txtVirusTotalAPIKey;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Button cmdAllowList;
+        private System.Windows.Forms.Button cmdGeneralSettings;
+        private System.Windows.Forms.GroupBox boxAllowed;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.TextBox txtAllowedList;
     }
 }

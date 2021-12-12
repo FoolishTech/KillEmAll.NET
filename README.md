@@ -15,4 +15,4 @@ Requires .NET Framework 4.5  (Note the non-VirusTotal Edition in the master bran
 
 VirusTotal functionality requires:
 - VirusTotalNet.dll (change project to target .NET Framework 4.5) and it's required Newtonsoft.Json.dll in the same directory as KillEmAll.NET.exe; that project source is available here:  https://github.com/Genbox/VirusTotalNet and it is also available under the MIT license.
-- A VirusTotal public API key, which you can get by creating an account in the VirusTotal Community https://www.virustotal.com/gui/join-us  Once registered and signed in, the API key is available through the dropdown menu under your username.
+- A VirusTotal API key, visit the following link to learn how to obtain your API key:  https://support.virustotal.com/hc/en-us/articles/115002088769-Please-give-me-an-API-key

@@ -38,7 +38,7 @@ namespace KillEmAll.NET
         private string _searchEngineURL;
         private string _file_d7xEXE = "";
         private string _path_d7x3pt = "";
-        public string File_AllowList = "";
+        private string _file_AllowList = "";
 
         private StringBuilder sbLog = new StringBuilder();
         public string Log() => sbLog.ToString();
@@ -185,24 +185,22 @@ namespace KillEmAll.NET
 
         private void createAllowListDictionary()
         {
-            string defFile;
             if (_file_d7xEXE.Length > 0)
             {
                 // get d7x path
-                defFile = Path.GetDirectoryName(_file_d7xEXE) + "\\d7x Resources\\Defs\\User\\Process_Whitelist.txt";
+                _file_AllowList = Path.GetDirectoryName(_file_d7xEXE) + "\\d7x Resources\\Defs\\User\\Process_Whitelist.txt";
             }
             else
             {
                 // get app path
                 var proc = Process.GetCurrentProcess();
-                defFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Allowed.txt";
+                _file_AllowList = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Allowed.txt";
             }
 
             string[] temp;
-            if (File.Exists(defFile))
+            if (File.Exists(_file_AllowList))
             {
-                temp = fileToStringArray(defFile);
-                File_AllowList = defFile;
+                temp = fileToStringArray(_file_AllowList);
             }
             else
             {
@@ -324,6 +322,7 @@ namespace KillEmAll.NET
         {
             bool bSuccess = false;
             bool bKill = false;
+            bool bAllowed = false;
             string sResult = "";
 
             // use full path (only if we have one) for initial user display and log text, else use process name only.
@@ -353,7 +352,7 @@ namespace KillEmAll.NET
 
                         PrintMsg:
                             Console.WriteLine("");
-                            Console.Write($"Terminate process:  \"{sSubject}\"  [Y/n] (Yes/No)?");
+                            Console.Write($"Terminate process:  \"{sSubject}\"  [Y/n/a] (Yes/No/Allow)?");
 
                             // if configured to always show info
                             if (_debugModeShowInfo)
@@ -473,6 +472,25 @@ namespace KillEmAll.NET
                                 case ConsoleKey.V:
                                     queryVirusTotal(fullPath, processName);
                                     goto GetUserInput;
+                                case ConsoleKey.A:
+                                    // only if we've not already allowed this process, else go back to waiting for more appropriate user input
+                                    if (!bAllowed)
+                                    {
+                                        if (addToAllowList(processName))
+                                        {
+                                            // flag that we've allowed this process so pressing A again does nothing
+                                            bAllowed = true;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            // user didn't allow the process, so pad a line space and go back to waiting for user input
+                                            Console.WriteLine("");
+                                            goto PrintMsg;
+                                        }
+                                    }
+                                    else
+                                        goto GetUserInput;
                                 case ConsoleKey.N:
                                     // add to skipped files collection if user specifically skips this file
                                     if (!_skippedProcesses.ContainsKey(sSubject))
@@ -520,103 +538,156 @@ namespace KillEmAll.NET
             }
         }
 
+        bool addToAllowList(string processName)
+        {
+            // returns TRUE if we can skip the process, or FALSE if we need to wait for user to make another selection.
+
+            if (processName.Trim().Length < 1)
+                return false;
+
+            // prompt user
+            Console.Write("Add process to Allowed Programs list:  \"" + processName + "\"  [y/N] (Yes/No)");
+        PromptUser:
+            ConsoleKeyInfo foo = Console.ReadKey();
+            switch (foo.Key)
+            {
+                case ConsoleKey.Y:
+                    break;
+                case ConsoleKey.N:
+                    return false;
+                case ConsoleKey.Enter:
+                    return false;
+                case ConsoleKey.Escape:
+                    return false;
+                default:
+                    goto PromptUser;
+            }
+
+            // add to allow list
+            try
+            {
+                _allowList.Add(processName.ToLower(), "");
+            }
+            catch
+            {
+            }
+
+            // get existing data
+            string data = Program.FileToString(_file_AllowList).Trim();
+
+            // strip off any ending crlf characters from the data
+            while (data.EndsWith("\r\n"))
+                data = data.Substring(0, data.Length - "\r\n".Length);
+
+            // add crlf and process name to existing data
+            data += "\r\n" + processName;
+
+            // save to file
+            try
+            {
+                using (StreamWriter writer = new StreamWriter(_file_AllowList))
+                    writer.Write(data);
+
+                Console.WriteLine("\nAdded \"" + processName + "\" to Allowed Programs list and saved.");
+            }
+            catch
+            {
+                Console.WriteLine("\nThere wasn an error saving the Allowed Programs list!");
+            }
+
+            // return true so we can skip this process
+            return true;
+        }
+
         async void queryVirusTotal(string fullPath, string fileName)
         {
-            // ensure we were passed a path
-            if (!fullPath.Contains("\\"))
-            {
-                if (isRunningAsAdmin())
-                    Console.WriteLine("\n  [No file path; cannot find file to upload!]");
-                else
-                    Console.WriteLine("\n  [No file path; try running as Administrator.]");
-                return;
-            }
+            // start off with a line space
+            Console.WriteLine("");
 
             // get API key and exit if it doesn't exist
             string apiKey = Program.IniRead("VirusTotal", "APIKey");
             if (apiKey.Trim().Length < 1)
+            {
+                Console.WriteLine("  [No VirusTotal API key is configured; visit KillEmAll.NET Configuration.]");
                 return;
+            }
 
             // exit if we don't have the dlls
             if (!Program.VirusTotalCapable)
+            {
+                Console.WriteLine("  [Missing VirusTotalNet.dll and/or Newtonsoft.Json.dll in the KillEmAll.NET.exe directory!]");
                 return;
+            }
 
-            Console.WriteLine("");
+            // ensure we were passed a path
+            if (!fullPath.Contains("\\"))
+            {
+                if (isRunningAsAdmin())
+                    Console.WriteLine("  [No file path; cannot find file to upload!]");
+                else
+                    Console.WriteLine("  [No file path; try running as Administrator.]");
+                return;
+            }
 
             VirusTotal virusTotal = new VirusTotal(apiKey);
 
-            //Use HTTPS instead of HTTP
+            // use HTTPS instead of HTTP
             virusTotal.UseTLS = true;
 
-            // get file bytes
+            // get file bytes and md5 hash
             byte[] fileBytes = File.ReadAllBytes(fullPath);
+            string md5Hash = byteArrayToString(MD5.Create().ComputeHash(fileBytes));
 
-            // get file report
-            FileReport initialReport = await virusTotal.GetFileReportAsync(fileBytes);
+            // get file report based on the md5 hash; previously we were uploading the file bytes thanks to a provided example... wow what a waste of time!
+            FileReport initialReport = await virusTotal.GetFileReportAsync(md5Hash);
 
-            // determine if it has been scanned before
-            bool scannedBefore = (initialReport.ResponseCode == FileReportResponseCode.Present);
-            bool scanQueued = false;
-
-            Console.WriteLine("  Seen before = " + (scannedBefore ? "Yes" : "No"));
-
-            if (initialReport.ScanId.Length > 0)
+            // check if file is in the VirusTotal scan queue (VT response code -2, or FileReportResponseCode.Queued)
+            if (initialReport.ResponseCode == FileReportResponseCode.Queued)
             {
-                // if we have a scan id, it has definitely been scanned before, yet the test above reports false when the scan is already queued,
-                if (!scannedBefore)
-                {
-                    // so set another bool to prevent us from uploading the file yet again
-                    scanQueued = true;
-                }
-                Console.WriteLine("  Scan ID     = " + initialReport.ScanId);
+                Console.WriteLine("  The file is queued for scanning, check back later.");
+                return;
             }
-
-            Console.WriteLine("  VT Response = " + initialReport.VerboseMsg);
-
-            if (scannedBefore)
+            
+            // determine if it has been scanned before (VT response code 1, or FileReportResponseCode.Present)
+            if (initialReport.ResponseCode == FileReportResponseCode.Present)
             {
-                // if scanned before, print previous scan results
-                
-                // start off with a line between the bits above and the result or the detections
-                Console.WriteLine("  -");
+                // if scanned before, print scan date and then previous scan results
+                Console.WriteLine("  Scan Date:   " + initialReport.ScanDate.ToLocalTime().ToString());
 
-                // prepare to gather overall result
-                int detectedCount = 0;
-                int totalCount = 0;
+                // print overall scan results
+                Console.WriteLine("  Detections:  {0}/{1}", initialReport.Positives.ToString(), initialReport.Total.ToString());
 
-                // print specific engine results, but only if positive
-                foreach (KeyValuePair<string, ScanEngine> scan in initialReport.Scans)
+                // so if there is any detection
+                if (initialReport.Positives > 0)
                 {
-                    totalCount++;
-                    if (scan.Value.Detected)
+                    // we want another line between the info above and the specific detection results
+                    Console.WriteLine("  ---------------------------------------------");
+
+                    // follow up with specific engine results, but only the positive detections
+                    foreach (KeyValuePair<string, ScanEngine> scan in initialReport.Scans)
                     {
-                        detectedCount++;
-                        //Console.WriteLine("    {0,-25} Detected: {1}", scan.Key, scan.Value.Detected);
-                        Console.WriteLine("  Detected by:  " + scan.Key);
+                        if (scan.Value.Detected)
+                            Console.WriteLine("  {0,-25} {1}", scan.Key, scan.Value.Result);
                     }
                 }
-
-                // so if there is a detection, we want another line between the bits above and the result
-                if (detectedCount > 0)
-                    Console.WriteLine("  -");
-                
-                // print overall result
-                Console.WriteLine("  VT Result   =  ({0}/{1})\n", detectedCount, totalCount);
             }
             else
             {
-                if (!scanQueued)
-                {
-                    Console.WriteLine("\n  Uploading File to VirusTotal...\n");
+                // let the user know we're uploading the file
+                Console.WriteLine("\n  Submitting file to VirusTotal, please wait...");
 
-                    // scan file
-                    ScanResult fileResult = await virusTotal.ScanFileAsync(fileBytes, fileName);
-                    
-                    Console.WriteLine("  Scan ID     = " + fileResult.ScanId);
-                    Console.WriteLine("  VT Response = " + fileResult.VerboseMsg);
-                    Console.WriteLine("");
-                }
+                // upload file bytes for scanning
+                ScanResult fileResult = await virusTotal.ScanFileAsync(fileBytes, fileName);
+
+                // check response code (VT response code 1, or ScanFileResponseCode.Queued, is our success)
+                if (fileResult.ResponseCode == ScanFileResponseCode.Queued)
+                    Console.WriteLine("  The file is queued for scanning, check back in a few minutes.");
+                else
+                    Console.WriteLine("  Possible Error; VT Response = " + fileResult.VerboseMsg);
             }
+            
+            // whatever we printed above, if we made it this far put another line space between that info and the next prompt
+            Console.WriteLine("");
         }
 
         void printFileInfo(string fullPath, string processName)

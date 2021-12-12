@@ -27,6 +27,8 @@ namespace KillEmAll.NET
         private const string scSearchEngine_GoogleEncEng = "Google (Encrypted/English)";
         private const string scSearchURL_GoogleEncEng = "https://encrypted.google.com/search?hl=en&aq=f&ie=UTF-8&q=";
 
+        private string _file_AllowList = "";
+
         public ConfigUI()
         {
             InitializeComponent();
@@ -34,6 +36,9 @@ namespace KillEmAll.NET
 
         private void ConfigUI_Load(object sender, EventArgs e)
         {
+            // set UI
+            boxAllowed.Visible = false;
+
             // populate search combo
             comboSearchEngineName.Items.Add(scSearchEngine_Custom);
             comboSearchEngineName.Items.Add(scSearchEngine_Bing);
@@ -66,6 +71,22 @@ namespace KillEmAll.NET
                 comboSearchEngineName.Text = scSearchEngine_GoogleEng;
                 txtSearchEngineURL.Text = scSearchURL_GoogleEng;
             }
+
+            // determine the allow list file based on if we have an active d7x session
+            string file_d7xEXE = Program.RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "AppEXE");
+            if (file_d7xEXE.Length > 0)
+            {
+                // get d7x path
+                _file_AllowList = Path.GetDirectoryName(file_d7xEXE) + "\\d7x Resources\\Defs\\User\\Process_Whitelist.txt";
+            }
+            else
+            {
+                // get app path
+                var proc = Process.GetCurrentProcess();
+                _file_AllowList = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Allowed.txt";
+            }
+            // get allow list to textbox
+            txtAllowedList.Text = Program.FileToString(_file_AllowList);
         }
 
         private void cmdSaveExit_Click(object sender, EventArgs e)
@@ -108,6 +129,36 @@ namespace KillEmAll.NET
             Program.IniWrite("Search", "URL", txtSearchEngineURL.Text.Trim());
 
             Program.IniWrite("VirusTotal", "APIKey", txtVirusTotalAPIKey.Text.Trim());
+
+            // save allow list
+            string allowListData = txtAllowedList.Text.ToLower().Trim();
+            // strip any preceeding or trailing crlf characters
+            while (allowListData.StartsWith("\r\n"))
+                allowListData = allowListData.Substring("\r\n".Length);
+            while (allowListData.EndsWith("\r\n"))
+                allowListData = allowListData.Substring(0, allowListData.Length - "\r\n".Length);
+            // get rid of any double line spacing
+            while (allowListData.Contains("\r\n\r\n"))
+                allowListData = allowListData.Replace("\r\n\r\n", "\r\n");
+            // save to file if we have anything left
+            if (allowListData.Trim().Length > 1)
+            {
+                try
+                {
+                    // create new or overwrite existing file
+                    using (StreamWriter writer = new StreamWriter(_file_AllowList))
+                        writer.Write(allowListData.Trim());
+                }
+                catch
+                {
+                }
+            }
+            else
+            {
+                // if we have an existing whitelist file, but nothing to save to it, then delete it.
+                if (File.Exists(_file_AllowList))
+                    File.Delete(_file_AllowList);
+            }
 
             this.Close();
         }
@@ -179,5 +230,43 @@ namespace KillEmAll.NET
                     break;
             }
         }
+
+        private void label4_Click(object sender, EventArgs e)
+        {
+            string url = "https://support.virustotal.com/hc/en-us/articles/115002088769-Please-give-me-an-API-key";
+
+            DialogResult resp = MessageBox.Show("Open URL?  (The VirusTotal website is not part of or affiliated with d7xTech, Inc.)\n\n" + url, "Visit the VirusTotal website?", MessageBoxButtons.OKCancel);
+            if (resp != DialogResult.OK)
+                return;
+
+            try
+            {
+                Process.Start(url);
+            }
+            catch
+            {
+            }
+        }
+
+        private void cmdAllowList_Click(object sender, EventArgs e)
+        {
+            // set UI
+            boxStartup.Visible = false;
+            boxDebug.Visible = false;
+            boxSearch.Visible = false;
+            boxVirusTotal.Visible = false;
+            boxAllowed.Visible = true;
+        }
+
+        private void cmdGeneralSettings_Click(object sender, EventArgs e)
+        {
+            // set UI
+            boxStartup.Visible = true;
+            boxDebug.Visible = true;
+            boxSearch.Visible = true;
+            boxVirusTotal.Visible = true;
+            boxAllowed.Visible = false;
+        }
+
     }
 }
