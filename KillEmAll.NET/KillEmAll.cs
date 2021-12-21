@@ -30,6 +30,7 @@ namespace KillEmAll.NET
         private string _sys64;
         private int _myPID;
         private int _myParentPID = 0;
+        private int _myGrandParentPID = 0;
         private bool _debugMode;
         private bool _debugModeShowInfo;
         private bool _skipAllAfterTerminatingDebugMode;
@@ -77,6 +78,18 @@ namespace KillEmAll.NET
             var parentProcess = ParentProcessUtilities.GetParentProcess(_myPID);
             if (parentProcess != null)
                 _myParentPID = parentProcess.Id;
+
+            // now we need the grandparent process to determnine if we're running in Windows Terminal,
+            // if so, we set the _myGrandParentPID variable so we know to test each process we find to
+            // determine if it's parent is also Windows Terminal (including OpenConsole.exe) so we should
+            // always skip those processes and that will keep it from terminating self plus all other 
+            // tabs within the same Windows Terminal session.
+            var grandParentProcess = ParentProcessUtilities.GetParentProcess(_myParentPID);
+            if (grandParentProcess != null)
+            {
+                if (grandParentProcess.ProcessName.Equals("WindowsTerminal", StringComparison.OrdinalIgnoreCase))
+                    _myGrandParentPID = grandParentProcess.Id;
+            }
 
             // these are Windows processes that should not be terminated, or that it's pointless to try and terminate, full paths.  
             // of course add 3rd party processes (full paths) as desired, like the last two added for VirtualBox.
@@ -241,15 +254,31 @@ namespace KillEmAll.NET
                     // get the process ID for testing
                     int PID = (int)p32Iw.th32ProcessID;
 
+                    // if we have determined that we're running from Windows Terminal, and our _myGrandParentPID != 0,
+                    // then we need to skip that PID as well
+                    bool isWindowsTerminal = false;
+                    if (_myGrandParentPID > 0)
+                        isWindowsTerminal = (_myGrandParentPID == PID);
+
                     // always skip when processID = 0 or 4 which are system critical, or is equal to my processID or my parent process
                     // theory behind skipping the parent process is that it is conhost in a console app, explorer.exe if run by the user
                     // in a GUI based app, or another app in a suite that is using this app as part of it's functionality.
-                    if (PID != 0 && PID != 4 && PID != _myPID && PID != _myParentPID)
+                    if (PID != 0 && PID != 4 && PID != _myPID && PID != _myParentPID && !isWindowsTerminal)
                     {
                         // check for child processes of this process and skip them, not that KillEmAll.NET does this but other apps I might use this class in might...
                         // so get the parent process ID and make sure that isn't me.
                         int ParentPID = (int)p32Iw.th32ParentProcessID;
-                        if (ParentPID != _myPID)
+
+                        // we need to determine if the process is the child of Windows Terminal so we can skip it,
+                        // but only if we've already determined that KillEmAll was spawned inside of Windows Terminal
+                        // (it would be a grandchild, since it is a direct child of cmd.exe) so that's why we're comparing
+                        // this process parent PID to the grandparent process ID of KillEmAll.  more info above where 
+                        // the _myGrandParentPID variable is set.
+                        bool childOfWindowsTerminal = false;
+                        if (_myGrandParentPID > 0)
+                            childOfWindowsTerminal = (_myGrandParentPID == ParentPID);
+
+                        if (ParentPID != _myPID && !childOfWindowsTerminal)
                         {
                             // get the filename
                             string filename = p32Iw.szExeFile.ToLower();
