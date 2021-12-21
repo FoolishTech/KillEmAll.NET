@@ -66,6 +66,7 @@ namespace KillEmAll.NET
             // this is reliable even when Environment.OSVersion is lying, because we only care if it is XP/2003 for this variable...
             _isWinXP = Environment.OSVersion.Version.ToString().Substring(0, 1).Equals("5");
 
+
             _winDir = Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.System)).ToString().ToLower() + "\\";
             _sys32 = _winDir + "system32\\";
             _sys64 = _winDir + "syswow64\\";
@@ -79,14 +80,16 @@ namespace KillEmAll.NET
             if (parentProcess != null)
                 _myParentPID = parentProcess.Id;
 
-            // now we need the grandparent process to determnine if we're running in Windows Terminal,
-            // if so, we set the _myGrandParentPID variable so we know to test each process we find to
-            // determine if it's parent is also Windows Terminal (including OpenConsole.exe) so we should
-            // always skip those processes and that will keep it from terminating self plus all other 
-            // tabs within the same Windows Terminal session.
+            // now we need the grandparent process to determnine if KillEmAll.NET was typed in an existing window of
+            // Windows Terminal, if so, we set the _myGrandParentPID variable so we know to test each process we find
+            // to determine if it's parent is also Windows Terminal (including OpenConsole.exe) so we should always
+            // skip those processes and that will keep it from terminating self plus all other tabs within the same
+            // Windows Terminal session.
             var grandParentProcess = ParentProcessUtilities.GetParentProcess(_myParentPID);
             if (grandParentProcess != null)
             {
+                // only set the variable for use if grandparent is Windows Terminal, otherwise we don't need to care
+                // what the grandparent process, but more than likely it is explorer.exe which is whitelisted below.
                 if (grandParentProcess.ProcessName.Equals("WindowsTerminal", StringComparison.OrdinalIgnoreCase))
                     _myGrandParentPID = grandParentProcess.Id;
             }
@@ -131,6 +134,29 @@ namespace KillEmAll.NET
                 {
                 }
             }
+
+            // with Windows 11's ability (and default) to set Windows Terminal as the default console, then simply double-clicking on KillEmAll.NET.exe
+            // starts KillEmAll in Windows Terminal but NOT *under* Windows Terminal as a child process.  In effect, if Windows Terminal is the default 
+            // then WindowsTerminal.exe runs in a separate process tree along with OpenConsole.exe both under Svchost.exe and neither with a child process
+            // which you would think would be KillEmAll.exe, but it isn't.  So the whole grandParentProcess stuff used above doesn't work like it does if 
+            // you just type KillEmAll.NET inside an existing Windows Terminal window.  As a result we need WindowsTerminal.exe and OpenConsole.exe whitelisted...
+            // now for the test, we're looking for this reg value that if it exists at all and doesn't equal a GUID of all zeros, then it's probably Windows Terminal.
+            string terminalGUID = Program.RegReadValueHKCU("Console\\%%Startup", "DelegationTerminal");
+            if (terminalGUID.Length > 0)
+            {
+                if (!terminalGUID.Equals("{00000000-0000-0000-0000-000000000000}"))
+                {
+                    try
+                    {
+                        _internalFileNames.Add("openconsole.exe", "");
+                        _internalFileNames.Add("windowsterminal.exe", "");
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
             // add partial filenames for a 'contains' search - this also ignores path.  this was implemented for remote support software or other 3rd party apps.
             // keep it short and sweet since this is a slow search method, but NOT too generic!  this is whitelisting every file with the exact string
             // included in the filename, regardless of what path it is in!

@@ -560,6 +560,46 @@ namespace KillEmAll.NET
             return ret;
         }
 
+        public static string RegReadValueHKCU(string regPath, string valueName)
+        {
+            RegistryKey regKey = null;
+            string ret = "";
+            RegistryHive theHive = RegistryHive.CurrentUser;
+            RegistryView theView = RegistryView.Registry64;
+
+            try
+            {
+                regKey = RegistryKey.OpenBaseKey(theHive, theView);
+            }
+            catch
+            {
+                return ret;
+            }
+
+            try
+            {
+                regKey = regKey.OpenSubKey(regPath);
+            }
+            catch
+            {
+                return ret;
+            }
+
+            if (regKey != null)
+            {
+                try
+                {
+                    ret = regKey.GetValue(valueName).ToString();
+                    regKey.Close();
+                }
+                catch
+                {
+                    regKey.Close();
+                }
+            }
+            return ret;
+        }
+
         public static string FileToString(string file)
         {
             string contents = "";
