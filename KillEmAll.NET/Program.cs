@@ -9,6 +9,7 @@ namespace KillEmAll.NET
 {
     class Program
     {
+        public static bool preLog = false;
         static string _appPath;
         static string _iniFile;
         static string _userType = "Standard User";
@@ -168,11 +169,13 @@ namespace KillEmAll.NET
             if (Console.WindowWidth < 120)
             {
                 Console.WriteLine("Press 'C' for KillEmAll.NET Configuration");
-                Console.WriteLine("Press 'D' to run KillEmAll.NET (in Debug Mode)");
+                Console.WriteLine("Press 'P' to enable pre-log before each termination.");
+                Console.WriteLine("Press 'D' to start KillEmAll.NET (in Debug Mode)");
             }
             else
             {
-                Console.WriteLine("Press 'D' to run KillEmAll.NET (in Debug Mode)       Press 'C' for KillEmAll.NET Configuration");
+                Console.WriteLine("Press 'P' to enable pre-log before each termination.");
+                Console.WriteLine("Press 'D' to start KillEmAll.NET (in Debug Mode)       Press 'C' for KillEmAll.NET Configuration");
             }
             if (!isRunningAsAdmin())
                 Console.WriteLine("Press 'A' to run KillEmAll.NET (as Administrator)");
@@ -191,6 +194,9 @@ namespace KillEmAll.NET
                 case ConsoleKey.C:
                     System.Windows.Forms.Form config = new ConfigUI();
                     config.ShowDialog();
+                    goto GetInput;
+                case ConsoleKey.P:
+                    preLog = true;
                     goto GetInput;
                 case ConsoleKey.D:
                     bEnableDebugMode = true;
@@ -350,27 +356,55 @@ namespace KillEmAll.NET
             Console.WriteLine("");
         }
 
+        public static string GetAllowListFile()
+        {
+            string appPath = "";
+            string allowListFile = "";
+
+            // get app path
+            var proc = Process.GetCurrentProcess();
+            appPath = Path.GetDirectoryName(proc.MainModule.FileName);
+
+            // set default whitelist file
+            allowListFile = appPath + "\\KillEmAll_Allowed.txt";
+
+            // only if default whitelist does not exist
+            if (!File.Exists(allowListFile))
+            {
+                // check CryptoPrevent location
+                if (File.Exists(appPath + "\\KillEmAll Data\\Defs\\User\\Process_Whitelist.txt"))
+                {
+                    // file exists, so reassign to CryptoPrevent whitelist file
+                    allowListFile = appPath + "\\KillEmAll Data\\Defs\\User\\Process_Whitelist.txt";
+                }
+                else
+                {
+                    // check for d7x session
+                    if (_file_d7xEXE.Length < 1)
+                        _file_d7xEXE = RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "AppEXE");
+
+                    if (_file_d7xEXE.Length > 1)
+                    {
+                        // assign d7x whitelist
+                        allowListFile = Path.GetDirectoryName(_file_d7xEXE) + "\\d7x Resources\\Defs\\User\\Process_Whitelist.txt";
+                    }
+                }
+            }
+
+            return allowListFile;
+        }
+
         static void printAppInfo()
         {
             string logFile = getLogFilePathAndName();
-            string allowListFile = "";
+            string allowListFile = GetAllowListFile();
             string d7x3PTPath = "";
 
-            if (_file_d7xEXE.Length < 1)
-                _file_d7xEXE = RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "AppEXE");
-
+            // find d7x 3pt path
             if (_file_d7xEXE.Length > 1)
-            {
-                allowListFile = Path.GetDirectoryName(_file_d7xEXE) + "\\d7x Resources\\Defs\\User\\Process_Whitelist.txt";
-                d7x3PTPath = Program.RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "3ptDir");
-            }
-            else
-            {
-                // get app path
-                var proc = Process.GetCurrentProcess();
-                allowListFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Allowed.txt";
-            }
+                d7x3PTPath = RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "3ptDir");
 
+            //if (_file_d7xEXE.
             Console.Clear();
 
             Console.WriteLine("\nVirusTotal  = " + (VirusTotalCapable ? "Both required DLLs found; VirusTotal functionality will be available." : "One or more required DLLs is missing; VirusTotal functionality will be unavailable!"));

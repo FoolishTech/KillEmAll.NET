@@ -42,15 +42,15 @@ namespace KillEmAll.NET
             this.boxDebug = new System.Windows.Forms.GroupBox();
             this.chkDebugAlwaysShowInfo = new System.Windows.Forms.CheckBox();
             this.boxVirusTotal = new System.Windows.Forms.GroupBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.txtVirusTotalAPIKey = new System.Windows.Forms.TextBox();
-            this.label4 = new System.Windows.Forms.Label();
-            this.label5 = new System.Windows.Forms.Label();
             this.cmdAllowList = new System.Windows.Forms.Button();
             this.cmdGeneralSettings = new System.Windows.Forms.Button();
             this.boxAllowed = new System.Windows.Forms.GroupBox();
-            this.txtAllowedList = new System.Windows.Forms.TextBox();
             this.label6 = new System.Windows.Forms.Label();
+            this.txtAllowedList = new System.Windows.Forms.TextBox();
             this.boxStartup.SuspendLayout();
             this.boxSearch.SuspendLayout();
             this.boxDebug.SuspendLayout();
@@ -94,11 +94,11 @@ namespace KillEmAll.NET
             // 
             // boxSearch
             // 
-            this.boxSearch.Controls.Add(this.label2);
             this.boxSearch.Controls.Add(this.label1);
             this.boxSearch.Controls.Add(this.comboSearchEngineName);
             this.boxSearch.Controls.Add(this.txtSearchEngineURL);
             this.boxSearch.Controls.Add(this.chkSearchFileNameOnly);
+            this.boxSearch.Controls.Add(this.label2);
             this.boxSearch.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.boxSearch.Location = new System.Drawing.Point(161, 155);
             this.boxSearch.Name = "boxSearch";
@@ -195,8 +195,8 @@ namespace KillEmAll.NET
             // 
             this.boxVirusTotal.Controls.Add(this.label5);
             this.boxVirusTotal.Controls.Add(this.label4);
-            this.boxVirusTotal.Controls.Add(this.label3);
             this.boxVirusTotal.Controls.Add(this.txtVirusTotalAPIKey);
+            this.boxVirusTotal.Controls.Add(this.label3);
             this.boxVirusTotal.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.boxVirusTotal.Location = new System.Drawing.Point(161, 281);
             this.boxVirusTotal.Name = "boxVirusTotal";
@@ -204,6 +204,29 @@ namespace KillEmAll.NET
             this.boxVirusTotal.TabIndex = 4;
             this.boxVirusTotal.TabStop = false;
             this.boxVirusTotal.Text = "VirusTotal API Key";
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label5.Location = new System.Drawing.Point(88, 67);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(176, 13);
+            this.label5.TabIndex = 8;
+            this.label5.Text = "to learn how to obtain your API Key.";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Underline))), System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label4.ForeColor = System.Drawing.Color.Blue;
+            this.label4.Location = new System.Drawing.Point(16, 67);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(66, 13);
+            this.label4.TabIndex = 7;
+            this.label4.Text = "Click Here";
+            this.label4.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            this.label4.Click += new System.EventHandler(this.label4_Click);
             // 
             // label3
             // 
@@ -222,29 +245,6 @@ namespace KillEmAll.NET
             this.txtVirusTotalAPIKey.Name = "txtVirusTotalAPIKey";
             this.txtVirusTotalAPIKey.Size = new System.Drawing.Size(348, 20);
             this.txtVirusTotalAPIKey.TabIndex = 0;
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Underline))), System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label4.ForeColor = System.Drawing.Color.Blue;
-            this.label4.Location = new System.Drawing.Point(16, 67);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(66, 13);
-            this.label4.TabIndex = 7;
-            this.label4.Text = "Click Here";
-            this.label4.TextAlign = System.Drawing.ContentAlignment.TopRight;
-            this.label4.Click += new System.EventHandler(this.label4_Click);
-            // 
-            // label5
-            // 
-            this.label5.AutoSize = true;
-            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label5.Location = new System.Drawing.Point(88, 67);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(176, 13);
-            this.label5.TabIndex = 8;
-            this.label5.Text = "to learn how to obtain your API Key.";
             // 
             // cmdAllowList
             // 
@@ -270,8 +270,8 @@ namespace KillEmAll.NET
             // 
             // boxAllowed
             // 
-            this.boxAllowed.Controls.Add(this.label6);
             this.boxAllowed.Controls.Add(this.txtAllowedList);
+            this.boxAllowed.Controls.Add(this.label6);
             this.boxAllowed.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.boxAllowed.Location = new System.Drawing.Point(158, 13);
             this.boxAllowed.Name = "boxAllowed";
@@ -279,16 +279,6 @@ namespace KillEmAll.NET
             this.boxAllowed.TabIndex = 7;
             this.boxAllowed.TabStop = false;
             this.boxAllowed.Text = "Allowed Programs (these programs will not be terminated.)";
-            // 
-            // txtAllowedList
-            // 
-            this.txtAllowedList.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtAllowedList.Location = new System.Drawing.Point(10, 38);
-            this.txtAllowedList.Multiline = true;
-            this.txtAllowedList.Name = "txtAllowedList";
-            this.txtAllowedList.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtAllowedList.Size = new System.Drawing.Size(367, 312);
-            this.txtAllowedList.TabIndex = 0;
             // 
             // label6
             // 
@@ -300,18 +290,28 @@ namespace KillEmAll.NET
             this.label6.TabIndex = 1;
             this.label6.Text = "One program name per line; no paths.";
             // 
+            // txtAllowedList
+            // 
+            this.txtAllowedList.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtAllowedList.Location = new System.Drawing.Point(10, 38);
+            this.txtAllowedList.Multiline = true;
+            this.txtAllowedList.Name = "txtAllowedList";
+            this.txtAllowedList.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtAllowedList.Size = new System.Drawing.Size(367, 312);
+            this.txtAllowedList.TabIndex = 0;
+            // 
             // ConfigUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(557, 379);
             this.Controls.Add(this.cmdGeneralSettings);
+            this.Controls.Add(this.boxStartup);
             this.Controls.Add(this.cmdAllowList);
             this.Controls.Add(this.boxVirusTotal);
             this.Controls.Add(this.boxDebug);
             this.Controls.Add(this.cmdSaveExit);
             this.Controls.Add(this.boxSearch);
-            this.Controls.Add(this.boxStartup);
             this.Controls.Add(this.boxAllowed);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;

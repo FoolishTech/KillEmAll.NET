@@ -96,7 +96,7 @@ namespace KillEmAll.NET
 
             // these are Windows processes that should not be terminated, or that it's pointless to try and terminate, full paths.  
             // of course add 3rd party processes (full paths) as desired, like the last two added for VirtualBox.
-            string[] filePathsArr = { _winDir + "explorer.exe", _sys32 + "services.exe", _sys32 + "winlogon.exe", _sys32 + "lsass.exe", _sys32 + "logonui.exe", _sys32 + "spoolsv.exe",
+            string[] filePathsArr = { _winDir + "explorer.exe", _sys32 + "services.exe", _sys32 + "winlogon.exe", _sys32 + "lsass.exe", _sys32 + "lsaiso.exe", _sys32 + "logonui.exe", _sys32 + "spoolsv.exe",
                 _sys32 + "alg.exe", _sys32 + "lsm.exe", _sys32 + "audiodg.exe", _sys32 + "dllhost.exe", _sys32 + "msdtc.exe", _sys32 + "wscntfy.exe", _sys32 + "wudfhost.exe",
                 _sys32 + "wininit.exe", _sys32 + "mdm.exe", _sys32 + "rdpclip.exe", _sys32 + "taskmgr.exe", _sys32 + "dwm.exe", _sys32 + "taskhost.exe", _sys32 + "taskeng.exe",
                 _sys32 + "sppsvc.exe", _sys32 + "conhost.exe", _sys32 + "wisptis.exe", _sys32 + "tabtip.exe", _sys32 + "inputpersonalization.exe", _sys32 + "wbem\\wmiprvse.exe",
@@ -138,7 +138,7 @@ namespace KillEmAll.NET
             // with Windows 11's ability (and default) to set Windows Terminal as the default console, then simply double-clicking on KillEmAll.NET.exe
             // starts KillEmAll in Windows Terminal but NOT *under* Windows Terminal as a child process.  In effect, if Windows Terminal is the default 
             // then WindowsTerminal.exe runs in a separate process tree along with OpenConsole.exe both under Svchost.exe and neither with a child process
-            // which you would think would be KillEmAll.exe, but it isn't.  So the whole grandParentProcess stuff used above doesn't work like it does if 
+            // which you would think would be KillEmAll.NET.exe, but it isn't.  So the whole grandParentProcess stuff used above doesn't work like it does if 
             // you just type KillEmAll.NET inside an existing Windows Terminal window.  As a result we need WindowsTerminal.exe and OpenConsole.exe whitelisted...
             // now for the test, we're looking for this reg value that if it exists at all and doesn't equal a GUID of all zeros, then it's probably Windows Terminal.
             string terminalGUID = Program.RegReadValueHKCU("Console\\%%Startup", "DelegationTerminal");
@@ -224,17 +224,8 @@ namespace KillEmAll.NET
 
         private void createAllowListDictionary()
         {
-            if (_file_d7xEXE.Length > 0)
-            {
-                // get d7x path
-                _file_AllowList = Path.GetDirectoryName(_file_d7xEXE) + "\\d7x Resources\\Defs\\User\\Process_Whitelist.txt";
-            }
-            else
-            {
-                // get app path
-                var proc = Process.GetCurrentProcess();
-                _file_AllowList = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Allowed.txt";
-            }
+            // find allowlist file
+            _file_AllowList = Program.GetAllowListFile();
 
             string[] temp;
             if (File.Exists(_file_AllowList))
@@ -574,6 +565,9 @@ namespace KillEmAll.NET
 
             if (bKill)
             {
+                if (Program.preLog)
+                    logTextToFile("Terminating:  " + sSubject);
+
                 bSuccess = killProcessByPID(PID);
                 if (bSuccess)
                 {
@@ -590,6 +584,23 @@ namespace KillEmAll.NET
             else
             {
                 Console.WriteLine($"Skipped \"{processName}\"");
+            }
+        }
+
+        static void logTextToFile(string logText)
+        {
+            var proc = Process.GetCurrentProcess();
+            string logFile = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Pre-Log.txt";
+            try
+            {
+                using (StreamWriter writer = new StreamWriter(logFile, true))
+                {
+                    writer.WriteLine(logText);
+                }
+            }
+            catch (Exception)
+            {
+                // do nothing
             }
         }
 

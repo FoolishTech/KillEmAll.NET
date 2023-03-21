@@ -71,20 +71,10 @@ namespace KillEmAll.NET
                 comboSearchEngineName.Text = scSearchEngine_GoogleEng;
                 txtSearchEngineURL.Text = scSearchURL_GoogleEng;
             }
+            
+            // find allowlist file
+            _file_AllowList = Program.GetAllowListFile();
 
-            // determine the allow list file based on if we have an active d7x session
-            string file_d7xEXE = Program.RegReadValueHKLM("Software\\d7xTech\\d7x\\Session\\Paths", "AppEXE");
-            if (file_d7xEXE.Length > 0)
-            {
-                // get d7x path
-                _file_AllowList = Path.GetDirectoryName(file_d7xEXE) + "\\d7x Resources\\Defs\\User\\Process_Whitelist.txt";
-            }
-            else
-            {
-                // get app path
-                var proc = Process.GetCurrentProcess();
-                _file_AllowList = Path.GetDirectoryName(proc.MainModule.FileName) + "\\KillEmAll_Allowed.txt";
-            }
             // get allow list to textbox
             txtAllowedList.Text = Program.FileToString(_file_AllowList);
         }
